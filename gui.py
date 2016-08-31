@@ -2,6 +2,7 @@ from collections import OrderedDict, namedtuple
 import matplotlib as mpl
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
+import matplotlib.cm
 from mpl_toolkits.basemap import Basemap
 import numpy as np
 from operator import methodcaller
@@ -52,6 +53,10 @@ PROJECTIONS = OrderedDict([
     # ('vandg', Projection('vandg', 'van der Grinten', 'degrees')),
 ])
 
+CONTOURS = [1, 100, 200, 300, 400, 500,
+            700, 900, 1100, 1300, 1500,
+            1800, 2100, 2400, 2700, 3000]
+
 
 class BlockDrawer:
 
@@ -60,6 +65,7 @@ class BlockDrawer:
         self.selected = False
         self.draw_field = False
         self.line = None
+        self.contour = None
 
     def draw(self, m, clear=False):
         coords = [m(*p) for p in self.block.pts]
@@ -67,10 +73,10 @@ class BlockDrawer:
 
         cx = [c[0] for c in coords]
         cy = [c[1] for c in coords]
-        color = 'w' if self.selected else 'b'
+        color = 'white'
         linestyle = 'solid' if self.selected else 'dotted'
         linewidth = 2 if self.selected else 1
-        zorder = 5 if self.selected else 4
+        zorder = 11 if self.selected else 10
 
         if clear or not self.line:
             self.line = m.plot(cx, cy, color=color,
@@ -83,6 +89,14 @@ class BlockDrawer:
             self.line.set_linestyle(linestyle)
             self.line.set_linewidth(linewidth)
             self.line.zorder = zorder
+
+        if self.draw_field:
+            self.block.compute()
+            if clear or not self.contour:
+                self.contour = m.contourf(self.block.lons, self.block.lats,
+                                          self.block.data,
+                                          latlon=True, zorder=5, alpha=0.8,
+                                          cmap='terrain', levels=CONTOURS)
 
     def click(self, lon, lat):
         self.selected = self.block.contains(lat, lon)
@@ -165,6 +179,7 @@ class MPLCanvas(FigureCanvas):
 
         m = Basemap(**kwargs)
         m.drawcoastlines()
+        m.drawcountries(linestyle='dashed')
         m.drawmapboundary(fill_color='aqua')
         m.fillcontinents(color='coral', lake_color='aqua')
         m.drawparallels(np.arange(-80,81,10))
@@ -191,6 +206,7 @@ class MPLCanvas(FigureCanvas):
     def block_options(self):
         for b in self.selected:
             b.draw_field = True
+        self.partial_refresh()
 
     def wheelEvent(self, event):
         self.zoom(-1 if event.angleDelta().y() > 0 else 1)

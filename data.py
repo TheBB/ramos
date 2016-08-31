@@ -5,6 +5,7 @@ import numpy as np
 
 ZONE = 33
 NORTH = True
+RES = 10
 
 
 class HDF5Submap:
@@ -24,6 +25,20 @@ class HDF5Submap:
     def contains(self, lat, lon):
         east, north, _, _ = utm.from_latlon(lat, lon, force_zone_number=ZONE)
         return self.west <= east <= self.east and self.south <= north <= self.north
+
+    def compute(self):
+        if not hasattr(self, 'data'):
+            ny, nx = self.h5f['maps'][self.group]['data'].shape
+            print(nx, ny)
+            x = np.linspace(self.west, self.east, (nx-1)//RES+1)
+            y = np.linspace(self.north, self.south, (ny-1)//RES+1)
+            print(x.shape, y.shape)
+            xx, yy = np.meshgrid(x, y)
+            print(xx.shape, yy.shape)
+            self.lats, self.lons = utm.to_latlon(xx, yy, ZONE, northern=NORTH)
+            print(self.lats.shape, self.lons.shape)
+            self.data = self.h5f['maps'][self.group]['data'][::RES,::RES]
+            print(self.data.shape)
 
 
 def read(fn):
