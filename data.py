@@ -1,11 +1,27 @@
 import h5py
 import utm
 import numpy as np
+import itertools
+from functools import reduce
 
 
 ZONE = 33
 NORTH = True
-RES = 10
+RES = 200
+
+
+def interpolate(array, *idxs):
+    left = [np.floor(i).astype(int) for i in idxs]
+    for i, l in enumerate(left):
+        l[np.nonzero(l == array.shape[i] - 1)] -= 1
+    ret = np.zeros(tuple(len(i) for i in idxs))
+    for corner in itertools.product((False, True), repeat=len(idxs)):
+        coef = np.ix_(*(j-l if c else 1-(j-l)
+                        for l,j,c in zip(left, idxs, corner)))
+        coef = reduce(np.multiply, coef)
+        cidxs = tuple(l + 1 if c else l for l, c in zip(left, corner))
+        ret += coef * array[np.meshgrid(*cidxs)].T
+    return ret
 
 
 class HDF5Submap:
@@ -29,16 +45,13 @@ class HDF5Submap:
     def compute(self):
         if not hasattr(self, 'data'):
             ny, nx = self.h5f['maps'][self.group]['data'].shape
-            print(nx, ny)
-            x = np.linspace(self.west, self.east, (nx-1)//RES+1)
-            y = np.linspace(self.north, self.south, (ny-1)//RES+1)
-            print(x.shape, y.shape)
+            x = np.linspace(self.west, self.east, RES)
+            y = np.linspace(self.north, self.south, RES)
             xx, yy = np.meshgrid(x, y)
-            print(xx.shape, yy.shape)
             self.lats, self.lons = utm.to_latlon(xx, yy, ZONE, northern=NORTH)
-            print(self.lats.shape, self.lons.shape)
-            self.data = self.h5f['maps'][self.group]['data'][::RES,::RES]
-            print(self.data.shape)
+            x = np.linspace(0, nx-1, RES)
+            y = np.linspace(0, ny-1, RES)
+            self.data = interpolate(self.h5f['maps'][self.group]['data'][()], x, y)
 
 
 def read(fn):
