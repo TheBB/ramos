@@ -1,3 +1,0 @@
-import gui
-
-gui.run()

@@ -9,7 +9,7 @@ from operator import methodcaller
 from PyQt5 import QtCore, QtGui, QtWidgets
 import sys
 
-import data
+from . import data
 
 mpl.use('Qt5Agg')
 

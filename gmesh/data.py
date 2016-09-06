@@ -1,5 +1,6 @@
 import netCDF4 as nc4
 import h5py
+import vtk
 import utm
 import numpy as np
 import itertools
@@ -78,7 +79,22 @@ class NetCDFFile:
         return self.path.contains_point((lat, lon))
 
     def compute(self):
-        pass
+        raise NotImplementedError('Compute for NetCDF not implemented')
+
+
+class VTKFile:
+
+    def __init__(self, fn):
+        reader = vtk.vtkDataSetReader()
+        reader.SetFileName(fn)
+        reader.Update()
+
+    def contains(self):
+        raise NotImplementedError('Contains for VTK not implemented')
+
+    def compute(self):
+        raise NotImplementedError('Compute for VTK not implemented')
+
 
 def read(fn):
     ext = splitext(fn)[-1].lower()
@@ -87,6 +103,8 @@ def read(fn):
         for group in h5f['maps']:
             yield HDF5Submap(h5f, group)
     elif ext == '.dem':
-        print('DEM support not added yet')
+        raise NotImplementedError('DEM support not implemented')
     elif ext == '.nc':
         yield NetCDFFile(fn)
+    elif ext == '.vtk':
+        yield VTKFile(fn)
