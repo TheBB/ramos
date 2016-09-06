@@ -1,13 +1,17 @@
+import netCDF4 as nc4
 import h5py
 import utm
 import numpy as np
 import itertools
+from matplotlib.path import Path
+from os.path import splitext
 from functools import reduce
 
 
 ZONE = 33
 NORTH = True
-RES = 200
+RES = 300
+BD_RES = 15
 
 
 def interpolate(array, *idxs):
@@ -51,11 +55,38 @@ class HDF5Submap:
             self.lats, self.lons = utm.to_latlon(xx, yy, ZONE, northern=NORTH)
             x = np.linspace(0, nx-1, RES)
             y = np.linspace(0, ny-1, RES)
-            self.data = interpolate(self.h5f['maps'][self.group]['data'][()], x, y)
+            self.data = interpolate(self.h5f['maps'][self.group]['data'][()], y, x)
 
+
+class NetCDFFile:
+
+    def __init__(self, fn):
+        data = nc4.Dataset(fn, 'r')
+
+        nx, ny = data['longitude'].shape
+        x = np.linspace(0, nx-1, BD_RES)
+        y = np.linspace(0, ny-1, BD_RES)
+        lon = interpolate(data['longitude'][:], x, y)
+        lat = interpolate(data['latitude'][:], x, y)
+        lon = list(lon[:,0]) + list(lon[-1,:]) + list(lon[-1::-1,-1]) + list(lon[0,-1::-1])
+        lat = list(lat[:,0]) + list(lat[-1,:]) + list(lat[-1::-1,-1]) + list(lat[0,-1::-1])
+
+        self.path = Path(np.vstack((lat, lon)).T)
+        self.pts = list(zip(lon, lat))
+
+    def contains(self, lat, lon):
+        return self.path.contains_point((lat, lon))
+
+    def compute(self):
+        pass
 
 def read(fn):
-    h5f = h5py.File(fn, 'r+')
-    for group in h5f['maps']:
-        yield HDF5Submap(h5f, group)
-    # h5f.close()
+    ext = splitext(fn)[-1].lower()
+    if ext == '.hms':
+        h5f = h5py.File(fn, 'r+')
+        for group in h5f['maps']:
+            yield HDF5Submap(h5f, group)
+    elif ext == '.dem':
+        print('DEM support not added yet')
+    elif ext == '.nc':
+        yield NetCDFFile(fn)

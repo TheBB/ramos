@@ -6,7 +6,7 @@ import matplotlib.cm
 from mpl_toolkits.basemap import Basemap
 import numpy as np
 from operator import methodcaller
-from PyQt5 import QtCore, QtWidgets
+from PyQt5 import QtCore, QtGui, QtWidgets
 import sys
 
 import data
@@ -267,7 +267,8 @@ class MainWindow(QtWidgets.QMainWindow):
         layout.addWidget(canvas)
 
         file_menu = QtWidgets.QMenu('&File', self)
-        file_menu.addAction('&Open file', self.open_file)
+        file_menu.addAction('&Open file', self.open_file).setShortcut(QtGui.QKeySequence("Ctrl+O"))
+        file_menu.addAction('Open &network', self.open_net).setShortcut(QtGui.QKeySequence("Ctrl+N"))
         self.menuBar().addMenu(file_menu)
 
         map_menu = QtWidgets.QMenu('&Map', self)
@@ -305,13 +306,23 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def open_file(self):
         dialog = QtWidgets.QFileDialog(self)
-        dialog.setNameFilters(["HDF5 files (*.hdf5)", "DEM files (*.dem)"])
+        dialog.setNameFilters(["HMs files (*.hms)",
+                               "DEM files (*.dem)",
+                               "NetCDF files (*.nc)"])
         dialog.setFileMode(QtWidgets.QFileDialog.ExistingFile)
         if dialog.exec_():
             for fn in dialog.selectedFiles():
                 for block in data.read(fn):
                     self.canvas.add_block(block)
             self.canvas.partial_refresh()
+
+    def open_net(self):
+        # fn, ok = QtWidgets.QInputDialog.getText(self, 'Open network content', 'URL')
+        # if ok and fn:
+        fn = 'http://thredds.met.no/thredds/dodsC/fsiwt/AM25_Coupled2W_2015/netcdf_full/AM25_Coupled2W_2015011000_full.nc'
+        for block in data.read(fn):
+            self.canvas.add_block(block)
+        self.canvas.partial_refresh()
 
     def read_file(self, *args, **kwargs):
         print(args, kwargs)
