@@ -1,6 +1,6 @@
 import math
 import numpy as np
-from utm.error import OutOfRangeError
+from gmesh.utm.error import OutOfRangeError
 
 __all__ = ['to_latlon', 'from_latlon']
 

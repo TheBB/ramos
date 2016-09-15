@@ -1,7 +1,7 @@
 import netCDF4 as nc4
 import h5py
 import vtk
-import utm
+from . import utm
 import numpy as np
 import itertools
 from matplotlib.path import Path
@@ -88,6 +88,7 @@ class VTKFile:
         reader = vtk.vtkDataSetReader()
         reader.SetFileName(fn)
         reader.Update()
+        self.reader = reader
 
     def contains(self):
         raise NotImplementedError('Contains for VTK not implemented')

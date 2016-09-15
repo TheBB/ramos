@@ -1,0 +1,6 @@
+#!/usr/bin/env python3
+# -*- mode: python -*-
+
+import runpy
+
+runpy.run_module('gmesh')
