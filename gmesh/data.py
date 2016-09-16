@@ -1,10 +1,7 @@
-import netCDF4 as nc4
-import h5py
-import vtk
+import importlib
 from . import utm
 import numpy as np
 import itertools
-from matplotlib.path import Path
 from os.path import splitext
 from functools import reduce
 
@@ -62,6 +59,7 @@ class HDF5Submap:
 class NetCDFFile:
 
     def __init__(self, fn):
+        nc4 = importlib.import_module('netCDF4')
         data = nc4.Dataset(fn, 'r')
 
         nx, ny = data['longitude'].shape
@@ -72,7 +70,8 @@ class NetCDFFile:
         lon = list(lon[:,0]) + list(lon[-1,:]) + list(lon[-1::-1,-1]) + list(lon[0,-1::-1])
         lat = list(lat[:,0]) + list(lat[-1,:]) + list(lat[-1::-1,-1]) + list(lat[0,-1::-1])
 
-        self.path = Path(np.vstack((lat, lon)).T)
+        path = importlib.import_module('matplotlib.path')
+        self.path = path.Path(np.vstack((lat, lon)).T)
         self.pts = list(zip(lon, lat))
 
     def contains(self, lat, lon):
@@ -85,6 +84,7 @@ class NetCDFFile:
 class VTKFile:
 
     def __init__(self, fn):
+        vtk = importlib.import_module('vtk')
         reader = vtk.vtkDataSetReader()
         reader.SetFileName(fn)
         reader.Update()
@@ -100,6 +100,7 @@ class VTKFile:
 def read(fn):
     ext = splitext(fn)[-1].lower()
     if ext == '.hms':
+        h5py = importlib.import_module('h5py')
         h5f = h5py.File(fn, 'r+')
         for group in h5f['maps']:
             yield HDF5Submap(h5f, group)

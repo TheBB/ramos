@@ -1,7 +1,6 @@
 import argparse
+import importlib
 import sys
-from . import gui
-from . import tools
 
 
 parser = argparse.ArgumentParser()
@@ -15,6 +14,8 @@ parser.add_argument('files', type=str, nargs='*')
 args = parser.parse_args()
 
 if args.mode == 'map':
+    gui = importlib.import_module('gmesh.gui')
     gui.run()
 elif args.mode == 'structure':
+    tools = importlib.import_module('gmesh.tools')
     tools.structure(args.files[0], args.nx, args.ny, args.nz, args.out)
