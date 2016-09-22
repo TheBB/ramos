@@ -6,15 +6,24 @@ from multiprocessing import Pool
 from . import data
 
 
-def structure(fn, nx, ny, nz, out):
+def structure(fn, out, nx, ny, nz, xval, yval, zval,):
     f = next(data.read(fn))
     dataset = f.reader.GetOutput()
 
     xmin, xmax, ymin, ymax, zmin, zmax = dataset.GetBounds()
 
-    xs = np.linspace(xmin, xmax, nx+1)
-    ys = np.linspace(ymin, ymax, ny+1)
-    zs = np.linspace(zmin, zmax, nz+1)
+    if isinstance(xval, float) and nx == 0:
+        xs = [xval]
+    else:
+        xs = np.linspace(xmin, xmax, nx+1)
+    if isinstance(yval, float) and ny == 0:
+        ys = [xval]
+    else:
+        ys = np.linspace(ymin, ymax, ny+1)
+    if isinstance(yval, float) and nz == 0:
+        zs = [xval]
+    else:
+        zs = np.linspace(zmin, zmax, nz+1)
 
     points = vtk.vtkPoints()
     for z, y, x in product(zs, ys, xs):
