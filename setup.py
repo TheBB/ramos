@@ -11,5 +11,8 @@ setup(
     license='GPL3',
     url='https://github.com/TheBB/gmesh',
     packages=['gmesh', 'gmesh.utm'],
-    scripts=['rungmesh'],
+    install_requires=['click', 'numpy'],
+    entry_points={
+        'console_scripts': ['gmesh=gmesh.__main__:main'],
+    },
 )
