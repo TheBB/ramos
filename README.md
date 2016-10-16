@@ -49,7 +49,7 @@ Python 3 versions.
   `LD_LIBRARY_PATH` before starting, for example
   
       export PYTHONPATH=/usr/local/lib/python3.5/site-packages:$PYTHONPATH
-      export LD_LIBRARY_PATH=/usr/local/lib:$PYTHONPATH
+      export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
     
 #### GUI
 
