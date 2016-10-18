@@ -45,14 +45,14 @@ def structure(fn, out, nx, ny, nz, xval, yval, zval,):
         shape.append(nx+1)
         bounds.append((xmin, xmax))
     if isinstance(yval, float):
-        ys = [xval]
+        ys = [yval]
     else:
         ys = np.linspace(ymin, ymax, ny+1)
         dims += 1
         shape.append(ny+1)
         bounds.append((ymin, ymax))
-    if isinstance(yval, float):
-        zs = [xval]
+    if isinstance(zval, float):
+        zs = [zval]
     else:
         zs = np.linspace(zmin, zmax, nz+1)
         dims += 1
