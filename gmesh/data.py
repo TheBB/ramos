@@ -1,3 +1,6 @@
+from collections import namedtuple
+from io import StringIO
+import xml.etree.ElementTree as xml
 import importlib
 from . import utm
 import numpy as np
@@ -24,6 +27,47 @@ def interpolate(array, *idxs):
         cidxs = tuple(l + 1 if c else l for l, c in zip(left, corner))
         ret += coef * array[np.meshgrid(*cidxs)].T
     return ret
+
+
+class IFEMFile:
+
+    Field = namedtuple('ResField', ['components', 'basis'])
+
+    def __init__(self, fn):
+        h5py = importlib.import_module('h5py')
+        self.h5f = h5py.File(fn, 'r+')
+
+        dom = xml.parse(splitext(fn)[0] + '.xml')
+        self.fields = {}
+        for child in dom.getroot():
+            if child.tag == 'entry' and child.attrib['type'] == 'field':
+                self.fields[child.attrib['name']] = IFEMFile.Field(
+                    components=int(child.attrib['components']),
+                    basis=child.attrib['basis']
+                )
+
+        io = importlib.import_module('splipy.io')
+        class G2Object(io.G2):
+            def __init__(self, fstream):
+                self.fstream = fstream
+                super(G2Object, self).__init__('')
+            def __enter__(self):
+                self.onlywrite = False
+                return self
+
+        self.bases = {}
+        for basisname, data in self.h5f['0']['basis'].items():
+            for patchid in range(0, len(data)):
+                g2str = data[str(patchid + 1)][:].tobytes().decode()
+                g2data = StringIO(data[str(patchid + 1)][:].tobytes().decode())
+                with G2Object(g2data) as g:
+                    self.bases.setdefault(basisname, [None]*len(data))[patchid] = g.read()[0]
+
+    def coefficients(self, fieldname, patchid):
+        field = self.fields[fieldname]
+        shape = (np.prod(self.bases[field.basis][patchid].shape), field.components)
+        data = self.h5f['0'][str(patchid + 1)][fieldname][:]
+        return np.reshape(data, shape)
 
 
 class HDF5Submap:
@@ -104,6 +148,8 @@ def read(fn):
         h5f = h5py.File(fn, 'r+')
         for group in h5f['maps']:
             yield HDF5Submap(h5f, group)
+    elif ext == '.hdf5':
+        yield IFEMFile(fn)
     elif ext == '.dem':
         raise NotImplementedError('DEM support not implemented')
     elif ext == '.nc':

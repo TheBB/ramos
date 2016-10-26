@@ -23,7 +23,16 @@ def main():
 def structure(filename, out, nx, ny, nz, xval, yval, zval):
     """Turn an unstructured VTK into a structured one."""
     tools = importlib.import_module('gmesh.tools')
-    tools.structure(filename, out, nx, ny, nz, xval, yval, zval,)
+    tools.structure(filename, out, nx, ny, nz, xval, yval, zval)
+
+
+@main.command()
+@click.option('--fields', '-f', type=str, multiple=True)
+@click.argument('filenames', type=str, nargs=-1)
+def reduce(fields, filenames):
+    """Dimensional reduction analysis."""
+    tools = importlib.import_module('gmesh.tools')
+    tools.reduce(fields, filenames)
 
 
 @main.command()

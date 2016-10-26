@@ -2,9 +2,10 @@ from io import StringIO
 from os.path import splitext
 import importlib
 import numpy as np
+from matplotlib import pyplot
 import sys
 import splipy.io
-from itertools import product, islice, repeat, tee
+from itertools import chain, product, islice, repeat, tee
 from multiprocessing import Pool
 from . import data
 
@@ -105,8 +106,8 @@ def structure(fn, out, nx, ny, nz, xval, yval, zval,):
 
         with h5py.File(basename + '.hdf5', 'w') as f:
             basis = f.create_group('/0/basis/basis')
-            ints = np.fromstring(obj_to_string(obj).encode('utf-8'), dtype=np.int8)
-            basis.create_dataset('1', data=ints, dtype='i8')
+            ints = np.fromstring(obj_to_string(obj), dtype=np.int8)
+            basis.create_dataset('1', data=ints, dtype=np.int8)
             level = f.create_group('/0/1')
             for fname, coefs in fields.items():
                 level.create_dataset(fname, data=coefs.flat)
@@ -116,3 +117,13 @@ def structure(fn, out, nx, ny, nz, xval, yval, zval,):
         writer.SetFileName(out)
         writer.SetInputData(structgrid)
         writer.Write()
+
+
+def reduce(fields, filenames):
+    objs = list(chain.from_iterable(data.read(fn) for fn in filenames))
+    coeffs = [obj.coefficients(field, 0) for obj in objs for field in fields]
+    data_mx = np.hstack(coeffs)
+
+    _, s, v = np.linalg.svd(data_mx.T, full_matrices=False)
+    pyplot.semilogy(s)
+    pyplot.show()
