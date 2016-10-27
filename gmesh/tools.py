@@ -27,44 +27,33 @@ def obj_to_string(obj):
     return s.getvalue()
 
 
-def structure(fn, out, nx, ny, nz, xval, yval, zval,):
+def structure(fn, out, coords, nums):
     vtk = importlib.import_module('vtk')
 
     f = next(data.read(fn))
     dataset = f.reader.GetOutput()
 
+    # Substitute unknown bounds with bounding box
     xmin, xmax, ymin, ymax, zmin, zmax = dataset.GetBounds()
+    bbox = [(xmin, xmax), (ymin, ymax), (zmin, zmax)]
+    for i, (c, bb) in enumerate(zip(coords, bbox)):
+        if c[0] is None: c[0] = bb[0]
+        if c[1] is None: c[1] = bb[1]
+        if c[0] == c[1]: nums[i] = 0
 
     dims = 0
     shape = []
-    bounds = []
-    if isinstance(xval, float):
-        xs = [xval]
-    else:
-        xs = np.linspace(xmin, xmax, nx+1)
-        dims += 1
-        shape.append(nx+1)
-        bounds.append((xmin, xmax))
-    if isinstance(yval, float):
-        ys = [yval]
-    else:
-        ys = np.linspace(ymin, ymax, ny+1)
-        dims += 1
-        shape.append(ny+1)
-        bounds.append((ymin, ymax))
-    if isinstance(zval, float):
-        zs = [zval]
-    else:
-        zs = np.linspace(zmin, zmax, nz+1)
-        dims += 1
-        shape.append(nz+1)
-        bounds.append((zmin, zmax))
+    for i, (c, n) in enumerate(zip(coords, nums)):
+        coords[i] = np.linspace(c[0], c[1], n+1)
+        if n > 0:
+            dims += 1
+            shape.append(n+1)
 
     points = vtk.vtkPoints()
-    for z, y, x in product(zs, ys, xs):
+    for z, y, x in product(*coords[::-1]):
         points.InsertNextPoint(x, y, z)
     new_grid = vtk.vtkStructuredGrid()
-    new_grid.SetDimensions(nx+1, ny+1, nz+1)
+    new_grid.SetDimensions(*[n+1 for n in nums])
     new_grid.SetPoints(points)
 
     probefilter = vtk.vtkProbeFilter()
@@ -82,8 +71,8 @@ def structure(fn, out, nx, ny, nz, xval, yval, zval,):
         for i in range(pointdata.GetNumberOfArrays()):
             fieldname = pointdata.GetArrayName(i)
             array = pointdata.GetArray(i)
-            coefs = np.zeros((len(zs) * len(ys) * len(xs), len(array.GetTuple(0))))
-            for i, _ in enumerate(product(zs, ys, xs)):
+            coefs = np.zeros((np.prod(shape), len(array.GetTuple(0))))
+            for i, _ in enumerate(product(*coords[::-1])):
                 coefs[i,:] = array.GetTuple(i)
             fields[fieldname] = coefs
         with open(basename + '.xml', 'w') as f:
@@ -95,14 +84,16 @@ def structure(fn, out, nx, ny, nz, xval, yval, zval,):
                 ))
             f.write('</stuff>\n')
 
-        if dims == 1:
-            obj = splipy.Curve()
-        elif dims == 2:
-            obj = splipy.Surface()
-        elif dims == 3:
-            obj = splipy.Volume()
+        obj = {
+            1: splipy.Curve,
+            2: splipy.Surface,
+            3: splipy.Volume,
+        }[dims]()
+        obj.set_dimension(3)
         obj.refine(*[k-2 for k in shape])
-        obj.scale(*[b-a for a,b in bounds])
+        for stuff in product(*map(enumerate, coords)):
+            idx = tuple([i for (i,_),c in zip(stuff, coords) if len(c) > 1] + [None])
+            obj.controlpoints[idx] = tuple(c for _,c in stuff)
 
         with h5py.File(basename + '.hdf5', 'w') as f:
             basis = f.create_group('/0/basis/basis')
