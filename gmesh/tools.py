@@ -4,13 +4,13 @@ import importlib
 import numpy as np
 from matplotlib import pyplot
 import sys
-import splipy.io
+import splipy.IO
 from itertools import chain, product, islice, repeat, tee
 from multiprocessing import Pool
 from . import data
 
 
-class G2Object(splipy.io.G2):
+class G2Object(splipy.IO.G2):
 
     def __init__(self, fstream):
         self.fstream = fstream

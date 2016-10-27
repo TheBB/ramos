@@ -46,7 +46,7 @@ class IFEMFile:
                     basis=child.attrib['basis']
                 )
 
-        io = importlib.import_module('splipy.io')
+        io = importlib.import_module('splipy.IO')
         class G2Object(io.G2):
             def __init__(self, fstream):
                 self.fstream = fstream
