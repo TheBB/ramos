@@ -45,6 +45,8 @@ class IFEMFile:
                     components=int(child.attrib['components']),
                     basis=child.attrib['basis']
                 )
+            elif child.tag == 'levels':
+                self.ntimes = int(child.text)
 
         io = importlib.import_module('splipy.IO')
         class G2Object(io.G2):
@@ -63,10 +65,10 @@ class IFEMFile:
                 with G2Object(g2data) as g:
                     self.bases.setdefault(basisname, [None]*len(data))[patchid] = g.read()[0]
 
-    def coefficients(self, fieldname, patchid):
+    def coefficients(self, fieldname, timelevel, patchid):
         field = self.fields[fieldname]
         shape = (np.prod(self.bases[field.basis][patchid].shape), field.components)
-        data = self.h5f['0'][str(patchid + 1)][fieldname][:]
+        data = self.h5f[str(timelevel)][str(patchid + 1)][fieldname][:]
         return np.reshape(data, shape)
 
 

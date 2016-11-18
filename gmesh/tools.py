@@ -111,7 +111,11 @@ def structure(fn, out, coords, nums, level=0, store_basis=True):
 
 def reduce(fields, filenames):
     objs = list(chain.from_iterable(data.read(fn) for fn in filenames))
-    coeffs = [obj.coefficients(field, 0) for obj in objs for field in fields]
+    coeffs = []
+    for obj in objs:
+        for t in range(0, obj.ntimes):
+            for f in fields:
+                coeffs.append(obj.coefficients(f, t, 0))
     data_mx = np.hstack(coeffs)
 
     _, s, v = np.linalg.svd(data_mx.T, full_matrices=False)

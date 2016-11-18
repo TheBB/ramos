@@ -55,6 +55,7 @@ def structure(filenames, timedirs, out, nx, ny, nz,
                 fields.update(tools.structure(fn, out, [xs, ys, zs], [nx, ny, nz],
                                               level=level, store_basis=first))
                 first = False
+
     else:
         assert len(filenames) == 1
         print(filenames[0], '->', out)
