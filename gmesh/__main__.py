@@ -2,7 +2,7 @@ from argparse import ArgumentParser, RawDescriptionHelpFormatter
 import click
 from collections import namedtuple, OrderedDict
 import importlib
-from os.path import dirname, isfile, splitext
+from os.path import dirname, isfile, split, splitext
 import sys
 import textwrap
 
@@ -42,7 +42,7 @@ def structure(filenames, timedirs, out, nx, ny, nz,
     if timedirs:
         files = {}
         for fn in filenames:
-            time = dirname(fn)
+            time = split(dirname(fn))[-1]
             files.setdefault(time, []).append(fn)
         files = sorted(list(files.items()), key=lambda k: float(k[0]))
         t_start = float(files[0][0])
