@@ -10,7 +10,7 @@ setup(
     author_email='eivind.fonn@sintef.no',
     license='GPL3',
     url='https://github.com/TheBB/gmesh',
-    packages=['gmesh', 'gmesh.utm'],
+    py_modules=['gmesh', 'gmesh.utm'],
     install_requires=['click', 'numpy'],
     entry_points={
         'console_scripts': ['gmesh=gmesh.__main__:main'],

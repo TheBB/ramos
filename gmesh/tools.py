@@ -27,7 +27,7 @@ def obj_to_string(obj):
     return s.getvalue()
 
 
-def structure(fn, out, coords, nums):
+def structure(fn, out, coords, nums, level=0, store_basis=True):
     vtk = importlib.import_module('vtk')
 
     f = next(data.read(fn))
@@ -75,14 +75,6 @@ def structure(fn, out, coords, nums):
             for i, _ in enumerate(product(*coords[::-1])):
                 coefs[i,:] = array.GetTuple(i)
             fields[fieldname] = coefs
-        with open(basename + '.xml', 'w') as f:
-            f.write('<stuff>\n')
-            f.write('  <levels>1</levels>\n')
-            for fname, coefs in fields.items():
-                f.write('  <entry type="field" name="{}" basis="basis" components="{}" />\n'.format(
-                    fname, coefs.shape[-1]
-                ))
-            f.write('</stuff>\n')
 
         obj = {
             1: splipy.Curve,
@@ -95,19 +87,26 @@ def structure(fn, out, coords, nums):
             idx = tuple([i for (i,_),c in zip(stuff, coords) if len(c) > 1] + [None])
             obj.controlpoints[idx] = tuple(c for _,c in stuff)
 
-        with h5py.File(basename + '.hdf5', 'w') as f:
-            basis = f.create_group('/0/basis/basis')
-            ints = np.fromstring(obj_to_string(obj), dtype=np.int8)
-            basis.create_dataset('1', data=ints, dtype=np.int8)
-            level = f.create_group('/0/1')
+        with h5py.File(basename + '.hdf5') as f:
+            if store_basis:
+                basis = f.require_group('/{}/basis/basis'.format(level))
+                ints = np.fromstring(obj_to_string(obj), dtype=np.int8)
+                basis.create_dataset('1', data=ints, dtype=np.int8)
+            patch = f.require_group('/{}/1'.format(level))
             for fname, coefs in fields.items():
-                level.create_dataset(fname, data=coefs.flat)
+                if fname.startswith('vtk'):
+                    continue
+                patch.create_dataset(fname, data=coefs.flat)
+
+        return fields
 
     elif ext == '.vtk':
         writer = vtk.vtkStructuredGridWriter()
         writer.SetFileName(out)
         writer.SetInputData(structgrid)
         writer.Write()
+
+        return {}
 
 
 def reduce(fields, filenames):

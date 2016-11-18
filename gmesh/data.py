@@ -59,7 +59,7 @@ class IFEMFile:
         for basisname, data in self.h5f['0']['basis'].items():
             for patchid in range(0, len(data)):
                 g2str = data[str(patchid + 1)][:].tobytes().decode()
-                g2data = StringIO(data[str(patchid + 1)][:].tobytes().decode())
+                g2data = StringIO(g2str)
                 with G2Object(g2data) as g:
                     self.bases.setdefault(basisname, [None]*len(data))[patchid] = g.read()[0]
 
