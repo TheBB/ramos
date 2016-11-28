@@ -26,9 +26,10 @@ def main():
 @click.option('--ny', type=int, default=10)
 @click.option('--nx', type=int, default=10)
 @click.option('--out', type=str, required=True)
+@click.option('--fprefix', type=str, default='')
 @click.option('--timedirs/--no-timedirs', default=False)
 @click.argument('filenames', type=str, nargs=-1)
-def structure(filenames, timedirs, out, nx, ny, nz,
+def structure(filenames, timedirs, out, fprefix, nx, ny, nz,
               xval, yval, zval, xmin, ymin, zmin, xmax, ymax, zmax):
     """Turn an unstructured VTK into a structured one."""
     xs = [xval, xval] if xval is not None else [xmin, xmax]
@@ -53,16 +54,17 @@ def structure(filenames, timedirs, out, nx, ny, nz,
             for fn in fns:
                 print('Level', level, fn, '->', out)
                 fields.update(tools.structure(fn, out, [xs, ys, zs], [nx, ny, nz],
-                                              level=level, store_basis=first))
+                                              level=level, store_basis=first,
+                                              fprefix=fprefix))
                 first = False
 
     else:
         assert len(filenames) == 1
         print(filenames[0], '->', out)
-        tools.structure(filenames[0], out, [xs, ys, zs], [nx, ny, nz])
+        tools.structure(filenames[0], out, [xs, ys, zs], [nx, ny, nz], fprefix=fprefix)
 
     basename, ext = splitext(out)
-    if ext == '.hdf5' and fields:
+    if ext in {'.hdf5', '.h5'} and fields:
         with open(basename + '.xml', 'w') as f:
             f.write('<stuff>\n')
             f.write('  <levels>{}</levels>\n'.format(ntimes))

@@ -150,7 +150,7 @@ def read(fn):
         h5f = h5py.File(fn, 'r+')
         for group in h5f['maps']:
             yield HDF5Submap(h5f, group)
-    elif ext == '.hdf5':
+    elif ext in {'.h5', '.hdf5'}:
         yield IFEMFile(fn)
     elif ext == '.dem':
         raise NotImplementedError('DEM support not implemented')

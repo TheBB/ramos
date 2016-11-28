@@ -27,7 +27,7 @@ def obj_to_string(obj):
     return s.getvalue()
 
 
-def structure(fn, out, coords, nums, level=0, store_basis=True):
+def structure(fn, out, coords, nums, level=0, store_basis=True, fprefix=''):
     vtk = importlib.import_module('vtk')
 
     f = next(data.read(fn))
@@ -64,17 +64,19 @@ def structure(fn, out, coords, nums, level=0, store_basis=True):
 
     basename, ext = splitext(out)
 
-    if ext == '.hdf5':
+    if ext in {'.hdf5', '.h5'}:
         h5py = importlib.import_module('h5py')
         pointdata = structgrid.GetPointData()
         fields = {}
         for i in range(pointdata.GetNumberOfArrays()):
             fieldname = pointdata.GetArrayName(i)
+            if fieldname.startswith('vtk'):
+                continue
             array = pointdata.GetArray(i)
             coefs = np.zeros((np.prod(shape), len(array.GetTuple(0))))
             for i, _ in enumerate(product(*coords[::-1])):
                 coefs[i,:] = array.GetTuple(i)
-            fields[fieldname] = coefs
+            fields[fprefix + fieldname] = coefs
 
         obj = {
             1: splipy.Curve,
@@ -87,15 +89,14 @@ def structure(fn, out, coords, nums, level=0, store_basis=True):
             idx = tuple([i for (i,_),c in zip(stuff, coords) if len(c) > 1] + [None])
             obj.controlpoints[idx] = tuple(c for _,c in stuff)
 
-        with h5py.File(basename + '.hdf5') as f:
+        with h5py.File(out) as f:
             if store_basis:
                 basis = f.require_group('/{}/basis/basis'.format(level))
                 ints = np.fromstring(obj_to_string(obj), dtype=np.int8)
-                basis.create_dataset('1', data=ints, dtype=np.int8)
+                if not '1' in basis:
+                    basis.create_dataset('1', data=ints, dtype=np.int8)
             patch = f.require_group('/{}/1'.format(level))
             for fname, coefs in fields.items():
-                if fname.startswith('vtk'):
-                    continue
                 patch.create_dataset(fname, data=coefs.flat)
 
         return fields
