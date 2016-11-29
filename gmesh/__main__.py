@@ -88,6 +88,22 @@ def reduce(fields, filenames):
 
 
 @main.command()
+@click.option('--step', '-s', type=float, default=None)
+@click.option('--lim', type=int, default=None)
+@click.option('--plotlim', type=int, default=None)
+@click.option('--kind', '-k', type=str, default=None)
+@click.argument('filename', type=str)
+@click.argument('field', type=str)
+def plot(filename, field, step, kind, lim, plotlim):
+    comp = 0
+    if ':' in field:
+        field, comp = field.split(':')
+        comp = int(comp)
+    tools = importlib.import_module('gmesh.tools')
+    tools.plot(filename, field, comp, step, lim, plotlim, kind)
+
+
+@main.command()
 def map():
     """Show the map."""
     gui = importlib.import_module('gmesh.gui')

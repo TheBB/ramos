@@ -2,11 +2,12 @@ from io import StringIO
 from os.path import splitext
 import importlib
 import numpy as np
-from matplotlib import pyplot
+from matplotlib import pyplot as plt
 import sys
 import splipy.IO
 from itertools import chain, product, islice, repeat, tee
 from multiprocessing import Pool
+from tqdm import tqdm
 from . import data
 
 
@@ -110,6 +111,41 @@ def structure(fn, out, coords, nums, level=0, store_basis=True, fprefix=''):
         return {}
 
 
+def plot(filename, field, comp=0, step=None, lim=None, plotlim=None, kind='line'):
+    f = next(data.read(filename))
+    if step is None:
+        step = f.dt
+    step = int(round(step / f.dt))
+    times = tqdm(range(0, min(f.ntimes, lim or f.ntimes), step))
+
+    if kind == 'line':
+        for nt in times:
+            coeffs = f.coefficients(field, nt, 0)
+            plt.plot(coeffs[:,comp])
+
+    elif kind == 'top':
+        coeffs = [f.coefficients(field, t, 0)[:,comp] for t in times]
+        tvals = [f.dt * t for t in times]
+        coeffs = np.vstack(coeffs).T
+        if plotlim: coeffs = coeffs[:,:plotlim]
+        plt.imshow(coeffs, aspect='auto', extent=(tvals[0], tvals[-1], 0, 1))
+        plt.colorbar()
+
+    elif kind == 'fourier':
+        coeffs = [f.coefficients(field, t, 0)[:,comp] for t in times]
+        coeffs = np.vstack(coeffs).T
+        ampl = np.fft.rfft(coeffs, axis=1)
+        df = 1 / ampl.shape[1] / step / f.dt
+        freq = [i*df for i in range(0, ampl.shape[1])]
+        if plotlim:
+            ampl = ampl[:,:plotlim]
+            freq = freq[:plotlim]
+        plt.imshow(np.abs(ampl[:,1:]), aspect='auto', extent=(freq[1], freq[-1], 0, 1))
+        plt.colorbar()
+
+    plt.show()
+
+
 def reduce(fields, filenames):
     objs = list(chain.from_iterable(data.read(fn) for fn in filenames))
     coeffs = []
@@ -120,5 +156,5 @@ def reduce(fields, filenames):
     data_mx = np.hstack(coeffs)
 
     _, s, v = np.linalg.svd(data_mx.T, full_matrices=False)
-    pyplot.semilogy(s)
-    pyplot.show()
+    plt.semilogy(s)
+    plt.show()

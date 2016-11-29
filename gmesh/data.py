@@ -47,6 +47,8 @@ class IFEMFile:
                 )
             elif child.tag == 'levels':
                 self.ntimes = int(child.text)
+            elif child.tag == 'timestep':
+                self.dt = float(child.text)
 
         io = importlib.import_module('splipy.IO')
         class G2Object(io.G2):
