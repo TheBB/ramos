@@ -3,12 +3,17 @@ from os.path import splitext
 import importlib
 import numpy as np
 from matplotlib import pyplot as plt
+import matplotlib.animation as anim
+from math import ceil
 import sys
 import splipy
 from itertools import chain, product, islice, repeat, tee, combinations_with_replacement
 from multiprocessing import Pool
 from tqdm import tqdm
 from . import data
+
+
+plt.switch_backend('Qt5Agg')
 
 
 def structure(fn, out, coords, nums, level=0, store_basis=True, fprefix=''):
@@ -73,7 +78,7 @@ def structure(fn, out, coords, nums, level=0, store_basis=True, fprefix=''):
             coefs = np.zeros((np.prod(shape), len(array.GetTuple(0))))
             for i, _ in enumerate(product(*coords[::-1])):
                 coefs[i,:] = array.GetTuple(i)
-            f.save_coeffs(fprefix + fieldname, 'basis', level, 0, coefs)
+            f.save_coeffs(fprefix + fieldname, 'basis', level, 0, coefs, transpose=False)
 
     elif ext == '.vtk':
         writer = vtk.vtkStructuredGridWriter()
@@ -82,25 +87,52 @@ def structure(fn, out, coords, nums, level=0, store_basis=True, fprefix=''):
         writer.Write()
 
 
-def plot(filename, field, comp=0, level=0):
+def plot(filename, field, comp=0, level=0, show=True, vmin=None, vmax=None):
     f = next(data.read(filename))
 
+    plt.clf()
     coeffs = f.coeffs(field, level, 0)
     if isinstance(comp, int):
         coeffs = coeffs[...,comp]
-    elif comp == 'ss':
+        plt.imshow(coeffs.T, vmin=vmin, vmax=vmax)
+        plt.colorbar()
+    elif comp in {'ss', 'ssq'}:
         coeffs = np.sum(coeffs ** 2, axis=-1)
-    plt.imshow(coeffs.T)
-    plt.colorbar()
-    plt.show()
+        if comp == 'ssq':
+            coeffs = np.sqrt(coeffs)
+        plt.imshow(coeffs.T, vmin=vmin, vmax=vmax)
+        plt.colorbar()
+    elif len(comp) == 2 and all(c in 'xyz' for c in comp):
+        u, v = (coeffs[...,'xyz'.index(c)].T for c in comp)
+        plt.quiver(u, v, alpha=0.15)
+
+    if show:
+        plt.show()
 
 
-def reduce(fields, filenames):
+def animate(filename, field, comp=0, out='out.mp4'):
+    f = next(data.read(filename))
+    fig = plt.gcf()
+    plt.get_current_fig_manager().window.showMaximized()
+
+    def do(i):
+        plot(filename, field, comp=comp, level=i, show=False, vmin=0, vmax=2)
+        plt.title('t = {:.4f}'.format(f.t_at(i)))
+
+    writer = anim.writers['ffmpeg'](fps=int(ceil(1/f.dt)), bitrate=2000)
+    animation = anim.FuncAnimation(fig, do, tqdm(range(0, f.ntimes)))
+    animation.save(out, writer=writer)
+
+
+def reduce(fields, filenames, out):
     objs = list(chain.from_iterable(data.read(fn) for fn in filenames))
     coeffs = []
+    basis = None
     for obj in objs:
         for t in range(0, obj.ntimes):
             coeffs.append(np.hstack(obj.coeffs(f, t, 0) for f in fields))
+        if not basis:
+            basis = obj.basis(obj.field(fields[0]).attrib['basis'], 0)
 
     cshape = coeffs[0].shape
     axes = tuple(range(len(cshape)-1))
@@ -119,11 +151,14 @@ def reduce(fields, filenames):
     w = w[::-1]
     v = v[:,::-1]
 
-    # h5py = importlib.import_module('h5py')
-    # for k in range(0, 1):
-    #     mode = np.zeros(cshape)
-    #     for i, vv in enumerate(v[:,0]):
-    #         mode += vv * coeffs[i]
+    print('Finalizing modes')
+    res = data.IFEMFile(out)
+    res.save_basis('basis', 0, basis)
+    for k in range(0, 10):
+        mode = np.zeros(cshape)
+        for i, vv in enumerate(v[:,k]):
+            mode += vv * coeffs[i]
+        res.save_coeffs('mode{:02}'.format(k+1), 'basis', 0, 0, mode, transpose=True)
 
     plt.plot(np.cumsum(w[:20]) / np.trace(data_mx) * 100, linewidth=2, marker='o')
     plt.plot([0, 20-1], [95, 95], '--')

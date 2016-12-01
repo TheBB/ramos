@@ -61,7 +61,7 @@ def structure(filenames, timedirs, out, fprefix, nx, ny, nz,
         if ext in {'.hdf5', '.h5'}:
             data = importlib.import_module('gmesh.data')
             f = data.IFEMFile(out)
-            f.set_timestep((t_end - t_start) / (ntimes - 1))
+            f.set_timestep((t_end - t_start) / (ntimes - 1), t_start, t_end)
 
     else:
         assert len(filenames) == 1
@@ -71,11 +71,12 @@ def structure(filenames, timedirs, out, fprefix, nx, ny, nz,
 
 @main.command()
 @click.option('--fields', '-f', type=str, multiple=True)
+@click.option('--out', type=str, required=True)
 @click.argument('filenames', type=str, nargs=-1)
-def reduce(fields, filenames):
+def reduce(fields, filenames, out):
     """Dimensional reduction analysis."""
     tools = importlib.import_module('gmesh.tools')
-    tools.reduce(fields, filenames)
+    tools.reduce(fields, filenames, out)
 
 
 @main.command()
@@ -86,10 +87,24 @@ def plot(filename, field, level):
     comp = 0
     if ':' in field:
         field, comp = field.split(':')
-        if comp != 'ss':
-            comp = int(comp)
+        try: comp = int(comp)
+        except ValueError: pass
     tools = importlib.import_module('gmesh.tools')
     tools.plot(filename, field, comp, level)
+
+
+@main.command()
+@click.option('--out', type=str, required=True)
+@click.argument('filename', type=str)
+@click.argument('field', type=str)
+def animate(filename, field, out):
+    comp = 0
+    if ':' in field:
+        field, comp = field.split(':')
+        try: comp = int(comp)
+        except ValueError: pass
+    tools = importlib.import_module('gmesh.tools')
+    tools.animate(filename, field, comp, out)
 
 
 @main.command()

@@ -75,6 +75,26 @@ class IFEMFile:
     def field(self, name):
         return self.dom.findall("./entry[@type='field'][@name='{}']".format(name))[0]
 
+    @property
+    def ntimes(self):
+        return len(self.h5f)
+
+    @property
+    def dt(self):
+        return float(self.dom.findall('./timestep')[0].text)
+
+    @property
+    def t_start(self):
+        return float(self.dom.findall('./timestep')[0].attrib['end'])
+
+    @property
+    def t_end(self):
+        return float(self.dom.findall('./timestep')[0].attrib['start'])
+
+    def t_at(self, i):
+        i /= (self.ntimes - 1)
+        return self.t_end * (1 - i) + self.t_start * i
+
     def save_basis(self, name, patchid, obj):
         self._bases[name, patchid] = obj
         group = self.h5f.require_group('/0/basis/{}'.format(name))
@@ -104,7 +124,12 @@ class IFEMFile:
             return np.reshape(data, shape)
         return data
 
-    def save_coeffs(self, name, basis, level, patchid, coeffs):
+    def save_coeffs(self, name, basis, level, patchid, coeffs, transpose=False):
+        if transpose:
+            axes = list(range(len(coeffs.shape)))
+            axes = axes[-2::-1] + [axes[-1]]
+            coeffs = np.transpose(coeffs, axes)
+
         group = self.h5f.require_group('/{}/{}'.format(level, patchid+1))
         group.create_dataset(name, data=coeffs.flat)
 
@@ -130,7 +155,7 @@ class IFEMFile:
 
         self.write_xml()
 
-    def set_timestep(self, ts):
+    def set_timestep(self, ts, start, end):
         try:
             timestep = self.dom.findall('./timestep')[0]
         except IndexError:
@@ -140,6 +165,8 @@ class IFEMFile:
             'constant': '1',
             'order': '1',
             'interval': '1',
+            'start': str(start),
+            'end': str(end),
         })
 
         self.write_xml()
