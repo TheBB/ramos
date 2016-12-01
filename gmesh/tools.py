@@ -4,28 +4,11 @@ import importlib
 import numpy as np
 from matplotlib import pyplot as plt
 import sys
-import splipy.IO
-from itertools import chain, product, islice, repeat, tee
+import splipy
+from itertools import chain, product, islice, repeat, tee, combinations_with_replacement
 from multiprocessing import Pool
 from tqdm import tqdm
 from . import data
-
-
-class G2Object(splipy.IO.G2):
-
-    def __init__(self, fstream):
-        self.fstream = fstream
-        super(G2Object, self).__init__('')
-
-    def __enter__(self):
-        self.onlywrite = False
-        return self
-
-def obj_to_string(obj):
-    s = StringIO()
-    with G2Object(s) as f:
-        f.write(obj)
-    return s.getvalue()
 
 
 def structure(fn, out, coords, nums, level=0, store_basis=True, fprefix=''):
@@ -66,9 +49,22 @@ def structure(fn, out, coords, nums, level=0, store_basis=True, fprefix=''):
     basename, ext = splitext(out)
 
     if ext in {'.hdf5', '.h5'}:
-        h5py = importlib.import_module('h5py')
+        f = data.IFEMFile(out)
+
+        if store_basis:
+            obj = {
+                1: splipy.Curve,
+                2: splipy.Surface,
+                3: splipy.Volume,
+            }[dims]()
+            obj.set_dimension(3)
+            obj.refine(*[k-2 for k in shape])
+            for stuff in product(*map(enumerate, coords)):
+                idx = tuple([i for (i,_),c in zip(stuff, coords) if len(c) > 1] + [None])
+                obj.controlpoints[idx] = tuple(c for _,c in stuff)
+            f.save_basis('basis', 0, obj)
+
         pointdata = structgrid.GetPointData()
-        fields = {}
         for i in range(pointdata.GetNumberOfArrays()):
             fieldname = pointdata.GetArrayName(i)
             if fieldname.startswith('vtk'):
@@ -77,30 +73,7 @@ def structure(fn, out, coords, nums, level=0, store_basis=True, fprefix=''):
             coefs = np.zeros((np.prod(shape), len(array.GetTuple(0))))
             for i, _ in enumerate(product(*coords[::-1])):
                 coefs[i,:] = array.GetTuple(i)
-            fields[fprefix + fieldname] = coefs
-
-        obj = {
-            1: splipy.Curve,
-            2: splipy.Surface,
-            3: splipy.Volume,
-        }[dims]()
-        obj.set_dimension(3)
-        obj.refine(*[k-2 for k in shape])
-        for stuff in product(*map(enumerate, coords)):
-            idx = tuple([i for (i,_),c in zip(stuff, coords) if len(c) > 1] + [None])
-            obj.controlpoints[idx] = tuple(c for _,c in stuff)
-
-        with h5py.File(out) as f:
-            if store_basis:
-                basis = f.require_group('/{}/basis/basis'.format(level))
-                ints = np.fromstring(obj_to_string(obj), dtype=np.int8)
-                if not '1' in basis:
-                    basis.create_dataset('1', data=ints, dtype=np.int8)
-            patch = f.require_group('/{}/1'.format(level))
-            for fname, coefs in fields.items():
-                patch.create_dataset(fname, data=coefs.flat)
-
-        return fields
+            f.save_coeffs(fprefix + fieldname, 'basis', level, 0, coefs)
 
     elif ext == '.vtk':
         writer = vtk.vtkStructuredGridWriter()
@@ -108,41 +81,17 @@ def structure(fn, out, coords, nums, level=0, store_basis=True, fprefix=''):
         writer.SetInputData(structgrid)
         writer.Write()
 
-        return {}
 
-
-def plot(filename, field, comp=0, step=None, lim=None, plotlim=None, kind='line'):
+def plot(filename, field, comp=0, level=0):
     f = next(data.read(filename))
-    if step is None:
-        step = f.dt
-    step = int(round(step / f.dt))
-    times = tqdm(range(0, min(f.ntimes, lim or f.ntimes), step))
 
-    if kind == 'line':
-        for nt in times:
-            coeffs = f.coefficients(field, nt, 0)
-            plt.plot(coeffs[:,comp])
-
-    elif kind == 'top':
-        coeffs = [f.coefficients(field, t, 0)[:,comp] for t in times]
-        tvals = [f.dt * t for t in times]
-        coeffs = np.vstack(coeffs).T
-        if plotlim: coeffs = coeffs[:,:plotlim]
-        plt.imshow(coeffs, aspect='auto', extent=(tvals[0], tvals[-1], 0, 1))
-        plt.colorbar()
-
-    elif kind == 'fourier':
-        coeffs = [f.coefficients(field, t, 0)[:,comp] for t in times]
-        coeffs = np.vstack(coeffs).T
-        ampl = np.fft.rfft(coeffs, axis=1)
-        df = 1 / ampl.shape[1] / step / f.dt
-        freq = [i*df for i in range(0, ampl.shape[1])]
-        if plotlim:
-            ampl = ampl[:,:plotlim]
-            freq = freq[:plotlim]
-        plt.imshow(np.abs(ampl[:,1:]), aspect='auto', extent=(freq[1], freq[-1], 0, 1))
-        plt.colorbar()
-
+    coeffs = f.coeffs(field, level, 0)
+    if isinstance(comp, int):
+        coeffs = coeffs[...,comp]
+    elif comp == 'ss':
+        coeffs = np.sum(coeffs ** 2, axis=-1)
+    plt.imshow(coeffs.T)
+    plt.colorbar()
     plt.show()
 
 
@@ -151,10 +100,31 @@ def reduce(fields, filenames):
     coeffs = []
     for obj in objs:
         for t in range(0, obj.ntimes):
-            for f in fields:
-                coeffs.append(obj.coefficients(f, t, 0))
-    data_mx = np.hstack(coeffs)
+            coeffs.append(np.hstack(obj.coeffs(f, t, 0) for f in fields))
 
-    _, s, v = np.linalg.svd(data_mx.T, full_matrices=False)
-    plt.semilogy(s)
+    cshape = coeffs[0].shape
+    axes = tuple(range(len(cshape)-1))
+    coeffs = [c - np.mean(c, axis=axes) for c in coeffs]
+
+    r_coeffs = np.array(coeffs)
+    axes = list(range(0, len(r_coeffs.shape)))
+    axes = axes[1:] + axes[:1]
+    t_coeffs = np.transpose(r_coeffs, axes)
+
+    print('Assembling correlation matrix')
+    data_mx = np.tensordot(r_coeffs, t_coeffs, axes=3)
+
+    print('Computing eigenvalues')
+    w, v = np.linalg.eigh(data_mx)
+    w = w[::-1]
+    v = v[:,::-1]
+
+    # h5py = importlib.import_module('h5py')
+    # for k in range(0, 1):
+    #     mode = np.zeros(cshape)
+    #     for i, vv in enumerate(v[:,0]):
+    #         mode += vv * coeffs[i]
+
+    plt.plot(np.cumsum(w[:20]) / np.trace(data_mx) * 100, linewidth=2, marker='o')
+    plt.plot([0, 20-1], [95, 95], '--')
     plt.show()

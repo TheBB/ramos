@@ -3,6 +3,7 @@ from io import StringIO
 import xml.etree.ElementTree as xml
 import importlib
 from . import utm
+import splipy.IO
 import numpy as np
 import itertools
 from os.path import splitext
@@ -31,47 +32,117 @@ def interpolate(array, *idxs):
 
 class IFEMFile:
 
-    Field = namedtuple('ResField', ['components', 'basis'])
+    class G2Object(splipy.IO.G2):
+        def __init__(self, fstream):
+            self.fstream = fstream
+            super(IFEMFile.G2Object, self).__init__('')
+        def __enter__(self):
+            self.onlywrite = False
+            return self
+
+    @staticmethod
+    def obj_to_string(obj):
+        s = StringIO()
+        with IFEMFile.G2Object(s) as f:
+            f.write(obj)
+        return s.getvalue()
 
     def __init__(self, fn):
         h5py = importlib.import_module('h5py')
-        self.h5f = h5py.File(fn, 'r+')
+        self.h5f = h5py.File(fn)
+        self._bases = {}
 
-        dom = xml.parse(splitext(fn)[0] + '.xml')
-        self.fields = {}
-        for child in dom.getroot():
-            if child.tag == 'entry' and child.attrib['type'] == 'field':
-                self.fields[child.attrib['name']] = IFEMFile.Field(
-                    components=int(child.attrib['components']),
-                    basis=child.attrib['basis']
-                )
-            elif child.tag == 'levels':
-                self.ntimes = int(child.text)
-            elif child.tag == 'timestep':
-                self.dt = float(child.text)
+        self.xml_fn = splitext(fn)[0] + '.xml'
+        try:
+            self.dom = xml.parse(self.xml_fn).getroot()
+        except FileNotFoundError:
+            self.dom = xml.Element('info')
 
-        io = importlib.import_module('splipy.IO')
-        class G2Object(io.G2):
-            def __init__(self, fstream):
-                self.fstream = fstream
-                super(G2Object, self).__init__('')
-            def __enter__(self):
-                self.onlywrite = False
-                return self
+    def write_xml(self):
+        xml.ElementTree(self.dom).write(self.xml_fn, encoding='utf-8', xml_declaration=True)
 
-        self.bases = {}
-        for basisname, data in self.h5f['0']['basis'].items():
-            for patchid in range(0, len(data)):
-                g2str = data[str(patchid + 1)][:].tobytes().decode()
-                g2data = StringIO(g2str)
-                with G2Object(g2data) as g:
-                    self.bases.setdefault(basisname, [None]*len(data))[patchid] = g.read()[0]
+    def basis(self, name, patchid):
+        try:
+            return self._bases[name, patchid]
+        except KeyError:
+            g2str = self.h5f['0/basis/{}/{}'.format(name, patchid+1)][:].tobytes().decode()
+            g2data = StringIO(g2str )
+            with IFEMFile.G2Object(g2data) as g:
+                obj = g.read()[0]
+                self._bases[name, patchid] = obj
+                return obj
 
-    def coefficients(self, fieldname, timelevel, patchid):
-        field = self.fields[fieldname]
-        shape = (np.prod(self.bases[field.basis][patchid].shape), field.components)
-        data = self.h5f[str(timelevel)][str(patchid + 1)][fieldname][:]
-        return np.reshape(data, shape)
+    def field(self, name):
+        return self.dom.findall("./entry[@type='field'][@name='{}']".format(name))[0]
+
+    def save_basis(self, name, patchid, obj):
+        self._bases[name, patchid] = obj
+        group = self.h5f.require_group('/0/basis/{}'.format(name))
+        ints = np.fromstring(IFEMFile.obj_to_string(obj), dtype=np.int8)
+        pid = str(patchid + 1)
+        if pid in group:
+            del group[pid]
+        group.create_dataset(pid, data=ints, dtype=np.int8)
+
+    def coeffs(self, name, timelevel, patchid, vectorize=False):
+        field = self.field(name).attrib
+        components = int(field['components'])
+        basis = self.basis(field['basis'], patchid)
+
+        # Extract data in correct order (column-major)
+        data = self.h5f[str(timelevel)][str(patchid + 1)][name][:]
+        shape = tuple(list(basis.shape)[::-1] + [components])
+        data = np.reshape(data, shape)
+
+        # Transpose so we get it row-major
+        axes = list(range(len(data.shape)))
+        axes = axes[-2::-1] + [axes[-1]]
+        data = np.transpose(data, axes)
+
+        if vectorize:
+            shape = (np.prod(data.shape[:-1]), components)
+            return np.reshape(data, shape)
+        return data
+
+    def save_coeffs(self, name, basis, level, patchid, coeffs):
+        group = self.h5f.require_group('/{}/{}'.format(level, patchid+1))
+        group.create_dataset(name, data=coeffs.flat)
+
+        # Number of levels
+        try:
+            levels = self.dom.findall('./levels')[0]
+            levels.text = str(max(int(levels.text), level+1))
+        except IndexError:
+            levels = xml.SubElement(self.dom, 'levels')
+            levels.text = str(level + 1)
+
+        # Field
+        try:
+            entry = self.dom.findall("./entry[@type='field'][@name='{}']".format(name))[0]
+        except IndexError:
+            entry = xml.SubElement(self.dom, 'entry')
+        entry.attrib.update({
+            'type': 'field',
+            'name': name,
+            'basis': basis,
+            'components': str(coeffs.shape[-1]),
+        })
+
+        self.write_xml()
+
+    def set_timestep(self, ts):
+        try:
+            timestep = self.dom.findall('./timestep')[0]
+        except IndexError:
+            timestep = xml.SubElement(self.dom, 'timestep')
+        timestep.text = str(ts)
+        timestep.attrib.update({
+            'constant': '1',
+            'order': '1',
+            'interval': '1',
+        })
+
+        self.write_xml()
 
 
 class HDF5Submap:

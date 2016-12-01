@@ -37,7 +37,6 @@ def structure(filenames, timedirs, out, fprefix, nx, ny, nz,
     zs = [zval, zval] if zval is not None else [zmin, zmax]
     tools = importlib.import_module('gmesh.tools')
 
-    fields = {}
     t_start, t_end, ntimes = 0.0, 0.0, 1
 
     if timedirs:
@@ -53,29 +52,21 @@ def structure(filenames, timedirs, out, fprefix, nx, ny, nz,
         for level, (time, fns) in enumerate(files):
             for fn in fns:
                 print('Level', level, fn, '->', out)
-                fields.update(tools.structure(fn, out, [xs, ys, zs], [nx, ny, nz],
-                                              level=level, store_basis=first,
-                                              fprefix=fprefix))
+                tools.structure(fn, out, [xs, ys, zs], [nx, ny, nz],
+                                level=level, store_basis=first,
+                                fprefix=fprefix)
                 first = False
+
+        basename, ext = splitext(out)
+        if ext in {'.hdf5', '.h5'}:
+            data = importlib.import_module('gmesh.data')
+            f = data.IFEMFile(out)
+            f.set_timestep((t_end - t_start) / (ntimes - 1))
 
     else:
         assert len(filenames) == 1
         print(filenames[0], '->', out)
         tools.structure(filenames[0], out, [xs, ys, zs], [nx, ny, nz], fprefix=fprefix)
-
-    basename, ext = splitext(out)
-    if ext in {'.hdf5', '.h5'} and fields:
-        with open(basename + '.xml', 'w') as f:
-            f.write('<stuff>\n')
-            f.write('  <levels>{}</levels>\n'.format(ntimes))
-            for fname, coefs in fields.items():
-                f.write('  <entry type="field" name="{}" basis="basis" components="{}" />\n'.format(
-                    fname, coefs.shape[-1]
-                ))
-            f.write('  <timestep constant="1" order="1" interval="1">{}</timestep>\n'.format(
-                (t_end - t_start) / (ntimes - 1)
-            ))
-            f.write('</stuff>\n')
 
 
 @main.command()
@@ -88,19 +79,17 @@ def reduce(fields, filenames):
 
 
 @main.command()
-@click.option('--step', '-s', type=float, default=None)
-@click.option('--lim', type=int, default=None)
-@click.option('--plotlim', type=int, default=None)
-@click.option('--kind', '-k', type=str, default=None)
+@click.option('--level', '-l', type=int, default=0)
 @click.argument('filename', type=str)
 @click.argument('field', type=str)
-def plot(filename, field, step, kind, lim, plotlim):
+def plot(filename, field, level):
     comp = 0
     if ':' in field:
         field, comp = field.split(':')
-        comp = int(comp)
+        if comp != 'ss':
+            comp = int(comp)
     tools = importlib.import_module('gmesh.tools')
-    tools.plot(filename, field, comp, step, lim, plotlim, kind)
+    tools.plot(filename, field, comp, level)
 
 
 @main.command()
