@@ -28,8 +28,9 @@ def main():
 @click.option('--out', type=str, required=True)
 @click.option('--fprefix', type=str, default='')
 @click.option('--timedirs/--no-timedirs', default=False)
+@click.option('--step', type=int, default=1)
 @click.argument('filenames', type=str, nargs=-1)
-def structure(filenames, timedirs, out, fprefix, nx, ny, nz,
+def structure(filenames, timedirs, step, out, fprefix, nx, ny, nz,
               xval, yval, zval, xmin, ymin, zmin, xmax, ymax, zmax):
     """Turn an unstructured VTK into a structured one."""
     xs = [xval, xval] if xval is not None else [xmin, xmax]
@@ -45,6 +46,7 @@ def structure(filenames, timedirs, out, fprefix, nx, ny, nz,
             time = split(dirname(fn))[-1]
             files.setdefault(time, []).append(fn)
         files = sorted(list(files.items()), key=lambda k: float(k[0]))
+        files = files[::step]
         t_start = float(files[0][0])
         t_end = float(files[-1][0])
         ntimes = len(files)
