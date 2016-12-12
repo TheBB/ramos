@@ -151,15 +151,16 @@ def reduce(fields, filenames, out):
     w = w[::-1]
     v = v[:,::-1]
 
-    print('Finalizing modes')
     res = data.IFEMFile(out)
     res.save_basis('basis', 0, basis)
-    for k in range(0, 10):
+    for k in tqdm(range(0, v.shape[-1]), desc='Finalizing modes'):
         mode = np.zeros(cshape)
         for i, vv in enumerate(v[:,k]):
             mode += vv * coeffs[i]
-        res.save_coeffs('mode{:02}'.format(k+1), 'basis', 0, 0, mode, transpose=True)
+        fieldname = 'mode{:02}'.format(k+1)
+        res.save_coeffs(fieldname, 'basis', 0, 0, mode, transpose=True)
+        res.set_meta(fieldname, 'energy', w[k] / np.trace(data_mx))
 
-    plt.plot(np.cumsum(w[:20]) / np.trace(data_mx) * 100, linewidth=2, marker='o')
-    plt.plot([0, 20-1], [95, 95], '--')
+    plt.plot(np.cumsum(w) / np.trace(data_mx) * 100, linewidth=2, marker='o')
+    plt.plot([0, v.shape[-1]-1], [95, 95], '--')
     plt.show()

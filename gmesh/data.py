@@ -75,6 +75,14 @@ class IFEMFile:
     def field(self, name):
         return self.dom.findall("./entry[@type='field'][@name='{}']".format(name))[0]
 
+    def set_meta(self, fieldname, name, value):
+        field = self.field(fieldname)
+        field.attrib['meta_' + name] = str(value)
+
+    def get_meta(self, fieldname, name):
+        field = self.field(fieldname)
+        return field.attrib['meta_' + name]
+
     @property
     def ntimes(self):
         return len(self.h5f)
