@@ -180,3 +180,22 @@ def avg(filename, field, varying=None, t=0):
         axes = tuple(a for a in axes if a != varying)
         mean = np.mean(coeffs, axis=axes)
         print(mean)
+
+
+def disp_flux(filename, t=0):
+    obj = next(data.read(filename))
+
+    coeffs = obj.coeffs('U', t, 0)
+    axes = tuple(range(0, len(coeffs.shape) - 1))
+    mean_u = np.mean(coeffs, axis=axes)
+
+    u_tilde = mean_u - coeffs
+    z_tilde = u_tilde[..., 2]
+    z_tilde = np.reshape(z_tilde, (np.prod(z_tilde.shape), 1))
+
+    test = np.hstack([z_tilde]*3)
+    test = np.reshape(test, u_tilde.shape)
+
+    prod = u_tilde * test
+    mean_prod = np.mean(prod, axis=axes)
+    print(mean_prod)
