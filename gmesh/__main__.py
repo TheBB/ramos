@@ -97,11 +97,12 @@ def plot(filename, field, level):
 
 @main.command()
 @click.option('--level', '-l', type=int, default=0)
+@click.option('--varying', type=str, default=None)
 @click.argument('filename', type=str)
 @click.argument('field', type=str)
-def avg(filename, field, level):
+def avg(filename, field, varying, level):
     tools = importlib.import_module('gmesh.tools')
-    tools.avg(filename, field, level)
+    tools.avg(filename, field, varying, level)
 
 
 @main.command()

@@ -166,9 +166,17 @@ def reduce(fields, filenames, out):
     plt.show()
 
 
-def avg(filename, field, t=0):
+def avg(filename, field, varying=None, t=0):
     obj = next(data.read(filename))
     coeffs = obj.coeffs(field, t, 0)
-    axes = tuple(range(0, len(coeffs.shape) - 1))
-    mean = np.mean(coeffs, axis=axes)
-    print(mean)
+
+    if varying is None:
+        axes = tuple(range(0, len(coeffs.shape) - 1))
+        mean = np.mean(coeffs, axis=axes)
+        print(mean)
+    else:
+        varying = 'xyz'.index(varying)
+        axes = tuple(range(0, len(coeffs.shape) - 1))
+        axes = tuple(a for a in axes if a != varying)
+        mean = np.mean(coeffs, axis=axes)
+        print(mean)
