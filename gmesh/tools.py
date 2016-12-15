@@ -164,3 +164,11 @@ def reduce(fields, filenames, out):
     plt.plot(np.cumsum(w) / np.trace(data_mx) * 100, linewidth=2, marker='o')
     plt.plot([0, v.shape[-1]-1], [95, 95], '--')
     plt.show()
+
+
+def avg(filename, field, t=0):
+    obj = next(data.read(filename))
+    coeffs = obj.coeffs(field, t, 0)
+    axes = tuple(range(0, len(coeffs.shape) - 1))
+    mean = np.mean(coeffs, axis=axes)
+    print(mean)

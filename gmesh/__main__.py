@@ -96,6 +96,15 @@ def plot(filename, field, level):
 
 
 @main.command()
+@click.option('--level', '-l', type=int, default=0)
+@click.argument('filename', type=str)
+@click.argument('field', type=str)
+def avg(filename, field, level):
+    tools = importlib.import_module('gmesh.tools')
+    tools.avg(filename, field, level)
+
+
+@main.command()
 @click.option('--out', type=str, required=True)
 @click.argument('filename', type=str)
 @click.argument('field', type=str)
