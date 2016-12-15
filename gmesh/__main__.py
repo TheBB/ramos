@@ -107,10 +107,11 @@ def avg(filename, field, varying, level):
 
 @main.command('disp-flux')
 @click.option('--level', '-l', type=int, default=0)
+@click.option('--varying', type=str, default=None)
 @click.argument('filename', type=str)
-def disp_flux(filename, level):
+def disp_flux(filename, varying, level):
     tools = importlib.import_module('gmesh.tools')
-    tools.disp_flux(filename, level)
+    tools.disp_flux(filename, varying, level)
 
 
 @main.command()

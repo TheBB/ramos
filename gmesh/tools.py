@@ -172,21 +172,25 @@ def avg(filename, field, varying=None, t=0):
 
     if varying is None:
         axes = tuple(range(0, len(coeffs.shape) - 1))
-        mean = np.mean(coeffs, axis=axes)
-        print(mean)
     else:
         varying = 'xyz'.index(varying)
         axes = tuple(range(0, len(coeffs.shape) - 1))
         axes = tuple(a for a in axes if a != varying)
-        mean = np.mean(coeffs, axis=axes)
-        print(mean)
+    mean = np.mean(coeffs, axis=axes)
+    print(mean)
 
 
-def disp_flux(filename, t=0):
+def disp_flux(filename, varying=None, t=0):
     obj = next(data.read(filename))
-
     coeffs = obj.coeffs('U', t, 0)
-    axes = tuple(range(0, len(coeffs.shape) - 1))
+
+    if varying is None:
+        axes = tuple(range(0, len(coeffs.shape) - 1))
+    else:
+        varying = 'xyz'.index(varying)
+        axes = tuple(range(0, len(coeffs.shape) - 1))
+        axes = tuple(a for a in axes if a != varying)
+
     mean_u = np.mean(coeffs, axis=axes)
 
     u_tilde = mean_u - coeffs
