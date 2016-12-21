@@ -58,6 +58,10 @@ class IFEMFile:
         except FileNotFoundError:
             self.dom = xml.Element('info')
 
+    @property
+    def fields(self):
+        yield from self.dom.findall("./entry[@type='field']")
+
     def write_xml(self):
         xml.ElementTree(self.dom).write(self.xml_fn, encoding='utf-8', xml_declaration=True)
 

@@ -82,17 +82,34 @@ def reduce(fields, filenames, out):
 
 
 @main.command()
+@click.option('--out', type=str, default=None)
+@click.argument('filename', type=str)
+def spectrum(filename, out):
+    """Dimensional reduction analysis."""
+    if out is None:
+        basename, _ = splitext(filename)
+        out = basename + '.csv'
+    tools = importlib.import_module('gmesh.tools')
+    tools.spectrum(filename, out)
+
+
+@main.command()
 @click.option('--level', '-l', type=int, default=0)
+@click.option('--out', type=str, default=None)
+@click.option('--colorbar/--no-colorbar', default=True)
+@click.option('--ticks/--no-ticks', default=True)
+@click.option('--show/--no-show', default=True)
+@click.option('--style', default='imshow')
 @click.argument('filename', type=str)
 @click.argument('field', type=str)
-def plot(filename, field, level):
+def plot(filename, field, **kwargs):
     comp = 0
     if ':' in field:
         field, comp = field.split(':')
         try: comp = int(comp)
         except ValueError: pass
     tools = importlib.import_module('gmesh.tools')
-    tools.plot(filename, field, comp, level)
+    tools.plot(filename, field, comp=comp, **kwargs)
 
 
 @main.command()

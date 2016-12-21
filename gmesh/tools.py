@@ -87,24 +87,52 @@ def structure(fn, out, coords, nums, level=0, store_basis=True, fprefix=''):
         writer.Write()
 
 
-def plot(filename, field, comp=0, level=0, show=True, vmin=None, vmax=None):
+def plot(filename, field, comp=0, level=0, show=True, vmin=None, vmax=None, out=None,
+         colorbar=True, ticks=True, style='imshow'):
     f = next(data.read(filename))
+
+    back_plotter = {
+        'imshow': plt.imshow,
+        'contour': plt.contour,
+    }[style]
+
+    ignore_kwds = {
+        'imshow': {'levels'},
+        'contour': set(),
+    }[style]
+
+    def plotter(*args, **kwargs):
+        kwargs = {k: v for k in kwargs if k not in ignore_kwds}
+        back_plotter(*args, **kwargs)
 
     plt.clf()
     coeffs = f.coeffs(field, level, 0)
     if isinstance(comp, int):
         coeffs = coeffs[...,comp]
-        plt.imshow(coeffs.T, vmin=vmin, vmax=vmax)
-        plt.colorbar()
+        levs = np.linspace(np.min(coeffs), np.max(coeffs), 20)
+        plotter(coeffs.T, vmin=vmin, vmax=vmax, levels=levs)
+        if colorbar:
+            plt.colorbar()
     elif comp in {'ss', 'ssq'}:
         coeffs = np.sum(coeffs ** 2, axis=-1)
         if comp == 'ssq':
             coeffs = np.sqrt(coeffs)
-        plt.imshow(coeffs.T, vmin=vmin, vmax=vmax)
-        plt.colorbar()
+        levs = np.linspace(np.min(coeffs), np.max(coeffs), 20)
+        plotter(coeffs.T, vmin=vmin, vmax=vmax, levels=levs)
+        if colorbar:
+            plt.colorbar()
     elif len(comp) == 2 and all(c in 'xyz' for c in comp):
         u, v = (coeffs[...,'xyz'.index(c)].T for c in comp)
         plt.quiver(u, v, alpha=0.15)
+
+    plt.axes().set_aspect(1)
+
+    if not ticks:
+        plt.tick_params(axis='x', which='both', bottom='off', top='off', labelbottom='off')
+        plt.tick_params(axis='y', which='both', left='off', right='off', labelleft='off')
+
+    if out:
+        plt.savefig(out, bbox_inches='tight', pad_inches=0)
 
     if show:
         plt.show()
@@ -164,6 +192,22 @@ def reduce(fields, filenames, out):
     plt.plot(np.cumsum(w) / np.trace(data_mx) * 100, linewidth=2, marker='o')
     plt.plot([0, v.shape[-1]-1], [95, 95], '--')
     plt.show()
+
+
+def spectrum(filename, out):
+    obj = next(data.read(filename))
+    nmodes = len(list(obj.fields))
+
+    spec, cspec = [], []
+    for i in range(1, nmodes):
+        fname = 'mode{:02}'.format(i)
+        energy = float(obj.get_meta(fname, 'energy'))
+        spec.append(energy)
+        cspec.append(energy + (cspec[-1] if cspec else 0))
+
+    with open(out, 'w') as f:
+        for s, c in zip(spec, cspec):
+            f.write('{} {}\n'.format(s, c))
 
 
 def avg(filename, field, varying=None, t=0):
