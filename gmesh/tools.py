@@ -93,7 +93,7 @@ def plot(filename, field, comp=0, level=0, show=True, vmin=None, vmax=None, out=
 
     back_plotter = {
         'imshow': plt.imshow,
-        'contour': plt.contour,
+        'contour': plt.contourf,
     }[style]
 
     ignore_kwds = {
@@ -102,7 +102,7 @@ def plot(filename, field, comp=0, level=0, show=True, vmin=None, vmax=None, out=
     }[style]
 
     def plotter(*args, **kwargs):
-        kwargs = {k: v for k in kwargs if k not in ignore_kwds}
+        kwargs = {k: v for k, v in kwargs.items() if k not in ignore_kwds}
         back_plotter(*args, **kwargs)
 
     plt.clf()
