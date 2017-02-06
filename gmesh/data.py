@@ -33,17 +33,17 @@ def interpolate(array, *idxs):
 class IFEMFile:
 
     class G2Object(splipy.IO.G2):
-        def __init__(self, fstream):
+        def __init__(self, fstream, mode):
             self.fstream = fstream
+            self.onlywrite = mode == 'w'
             super(IFEMFile.G2Object, self).__init__('')
         def __enter__(self):
-            self.onlywrite = False
             return self
 
     @staticmethod
     def obj_to_string(obj):
         s = StringIO()
-        with IFEMFile.G2Object(s) as f:
+        with IFEMFile.G2Object(s, 'w') as f:
             f.write(obj)
         return s.getvalue()
 
@@ -71,7 +71,7 @@ class IFEMFile:
         except KeyError:
             g2str = self.h5f['0/basis/{}/{}'.format(name, patchid+1)][:].tobytes().decode()
             g2data = StringIO(g2str )
-            with IFEMFile.G2Object(g2data) as g:
+            with IFEMFile.G2Object(g2data, 'r') as g:
                 obj = g.read()[0]
                 self._bases[name, patchid] = obj
                 return obj
