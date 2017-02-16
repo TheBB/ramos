@@ -37,9 +37,22 @@ Python 3 versions.
   Ubuntu, try the `python3-netcdf4` package.
 - The Python HDF5 bindings are required for reading HDF5 files. E.g. in Ubuntu,
   try the `python3-h5py` package.
-- The Python `vtk` bindings are required for reading and writing VTK files. You
-  may have to compile this yourself, since Python 3 support in VTK is rather
-  new. The instructions
+- The Python `vtk` bindings are required for reading and writing VTK files.
+  Since Python 3 support in VTK is rather new, this can be tricky. If you are on
+  a 16.04 Ubuntu system you can
+  try [this](https://launchpad.net/~elvstone/+archive/ubuntu/vtk7) PPA:
+
+      add-apt-repository ppa:elvstone/vtk7
+      apt-get update
+      apt-get install vtk7
+
+  This package installs to `/opt`, which means you need to tweak some
+  environment variables.
+
+      export PYTHONPATH=/opt/VTK-7.0.0/lib/python3.5/site-packages:$PYTHONPATH
+      export LD_LIBRARY_PATH=/opt/VTK-7.0.0/lib:$LD_LIBRARY_PATH
+
+  Otherwise you may have to compile it yourself. The instructions
   [here](http://www.vtk.org/Wiki/VTK/Configure_and_Build#Configure_VTK_with_CMake) are
   quite complete and easy to follow. When configuring with `cmake` or `ccmake`,
   make sure that you enable the Python bindings and that the Python version is
