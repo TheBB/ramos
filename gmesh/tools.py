@@ -16,7 +16,53 @@ from . import data
 plt.switch_backend('Qt5Agg')
 
 
-def structure(fn, out, coords, nums, level=0, store_basis=True, fprefix=''):
+def transform(fn, normal, basept, auto, out):
+    vtk = importlib.import_module('vtk')
+    f = next(data.read(fn))
+
+    if not normal and not basept:
+        polydata = f.reader.GetOutput()
+        arr = np.array([polydata.GetPoint(i) for i in range(polydata.GetNumberOfPoints())])
+        arr = arr - arr.mean(axis=0)
+        w, v = np.linalg.eig(np.dot(arr.T, arr))
+        min_idx = w.argmin()
+        normal = v[:,min_idx]
+        basept = polydata.GetPoint(0)
+
+        if not auto:
+            print('Normal: {}', normal)
+            print('Base: {}', basept)
+
+            return
+
+    normal = np.array(normal)
+    basept = np.array(basept)
+
+    transform = vtk.vtkTransform()
+    transform.PostMultiply()
+    transform.Translate(*(-p for p in basept))
+
+    tgt = np.array([0, 1, 0])
+    if np.dot(normal, tgt) < 0:
+        normal = -normal
+    axis = np.cross(normal, tgt)
+    axis /= np.linalg.norm(axis)
+    angle = np.arccos(np.dot(normal, tgt)) * 180 / np.pi
+    print(angle, axis, fn)
+    transform.RotateWXYZ(angle, *axis)
+
+    transformfilter = vtk.vtkTransformPolyDataFilter()
+    transformfilter.SetInputConnection(f.reader.GetOutputPort())
+    transformfilter.SetTransform(transform)
+    transformfilter.Update()
+
+    writer = vtk.vtkPolyDataWriter()
+    writer.SetFileName(out)
+    writer.SetInputConnection(transformfilter.GetOutputPort())
+    writer.Write()
+
+
+def structure(fn, out, coords, nums, level=0, store_basis=True, fprefix='', tolerance=None):
     vtk = importlib.import_module('vtk')
 
     f = next(data.read(fn))

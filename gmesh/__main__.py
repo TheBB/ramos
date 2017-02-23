@@ -13,6 +13,23 @@ def main():
 
 
 @main.command()
+@click.option('--out', type=str, required=False)
+@click.option('--normal', type=float, nargs=3, required=False)
+@click.option('--base', type=float, nargs=3, required=False)
+@click.option('--auto/--no-auto', default=False)
+@click.argument('filenames', type=str, nargs=-1)
+def transform(filenames, normal, base, auto, out):
+    tools = importlib.import_module('gmesh.tools')
+
+    for f in filenames:
+        this_out = out
+        if this_out is None:
+            bb, ext = splitext(f)
+            this_out = '{}_trf{}'.format(bb, ext)
+        tools.transform(f, normal, base, auto, this_out)
+
+
+@main.command()
 @click.option('--zval', type=float)
 @click.option('--yval', type=float)
 @click.option('--xval', type=float)
