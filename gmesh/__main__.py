@@ -45,10 +45,11 @@ def transform(filenames, normal, base, auto, out):
 @click.option('--out', type=str, required=True)
 @click.option('--fprefix', type=str, default='')
 @click.option('--timedirs/--no-timedirs', default=False)
+@click.option('--tolerance', type=float, default=None)
 @click.option('--step', type=int, default=1)
 @click.argument('filenames', type=str, nargs=-1)
 def structure(filenames, timedirs, step, out, fprefix, nx, ny, nz,
-              xval, yval, zval, xmin, ymin, zmin, xmax, ymax, zmax):
+              xval, yval, zval, xmin, ymin, zmin, xmax, ymax, zmax, tolerance):
     """Turn an unstructured VTK into a structured one."""
     xs = [xval, xval] if xval is not None else [xmin, xmax]
     ys = [yval, yval] if yval is not None else [ymin, ymax]
@@ -73,7 +74,7 @@ def structure(filenames, timedirs, step, out, fprefix, nx, ny, nz,
                 print('Level', level, fn, '->', out)
                 tools.structure(fn, out, [xs, ys, zs], [nx, ny, nz],
                                 level=level, store_basis=first,
-                                fprefix=fprefix)
+                                fprefix=fprefix, tolerance=tolerance)
                 first = False
 
         basename, ext = splitext(out)
@@ -85,7 +86,7 @@ def structure(filenames, timedirs, step, out, fprefix, nx, ny, nz,
     else:
         assert len(filenames) == 1
         print(filenames[0], '->', out)
-        tools.structure(filenames[0], out, [xs, ys, zs], [nx, ny, nz], fprefix=fprefix)
+        tools.structure(filenames[0], out, [xs, ys, zs], [nx, ny, nz], fprefix=fprefix, tolerance=tolerance)
 
 
 @main.command()

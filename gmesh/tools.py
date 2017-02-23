@@ -94,6 +94,11 @@ def structure(fn, out, coords, nums, level=0, store_basis=True, fprefix='', tole
     probefilter = vtk.vtkProbeFilter()
     probefilter.SetSourceConnection(f.reader.GetOutputPort())
     probefilter.SetInputData(new_grid)
+
+    if tolerance:
+        probefilter.SetComputeTolerance(False)
+        probefilter.SetTolerance(tolerance)
+
     probefilter.Update()
     structgrid = probefilter.GetStructuredGridOutput()
 
