@@ -236,7 +236,7 @@ def reduce(fields, filenames, out):
         mode = np.zeros(cshape)
         for i, vv in enumerate(v[:,k]):
             mode += vv * coeffs[i]
-        mode /= w[k]
+        mode /= np.sqrt(w[k])
         fieldname = 'mode{:02}'.format(k+1)
         res.save_coeffs(fieldname, 'basis', 0, 0, mode, transpose=True)
         res.set_meta(fieldname, 'energy', w[k] / np.trace(data_mx))
