@@ -81,7 +81,8 @@ def structure(filenames, timedirs, step, out, fprefix, nx, ny, nz,
         if ext in {'.hdf5', '.h5'}:
             data = importlib.import_module('gmesh.data')
             f = data.IFEMFile(out)
-            f.set_timestep((t_end - t_start) / (ntimes - 1), t_start, t_end)
+            if ntimes > 1:
+                f.set_timestep((t_end - t_start) / (ntimes - 1), t_start, t_end)
 
     else:
         assert len(filenames) == 1
