@@ -241,12 +241,8 @@ def reduce(fields, filenames, out):
         res.save_coeffs(fieldname, 'basis', 0, 0, mode, transpose=True)
         res.set_meta(fieldname, 'energy', w[k] / np.trace(data_mx))
 
-    plt.plot(np.cumsum(w) / np.trace(data_mx) * 100, linewidth=2, marker='o')
-    plt.plot([0, v.shape[-1]-1], [95, 95], '--')
-    plt.show()
 
-
-def spectrum(filename, out):
+def spectrum(filename, out, plot=False):
     obj = next(data.read(filename))
     nmodes = len(list(obj.fields))
 
@@ -260,6 +256,11 @@ def spectrum(filename, out):
     with open(out, 'w') as f:
         for s, c in zip(spec, cspec):
             f.write('{} {}\n'.format(s, c))
+
+    if plot:
+        plt.plot(cspec, linewidth=2, marker='o')
+        plt.plot([0, len(spec) - 1], [0.95, 0.95], '--')
+        plt.show()
 
 
 def avg(filename, field, varying=None, t=0):

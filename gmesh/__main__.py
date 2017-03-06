@@ -102,14 +102,15 @@ def reduce(fields, filenames, out):
 
 @main.command()
 @click.option('--out', type=str, default=None)
+@click.option('--plot/--no-plot', default=False)
 @click.argument('filename', type=str)
-def spectrum(filename, out):
+def spectrum(filename, out, plot):
     """Dimensional reduction analysis."""
     if out is None:
         basename, _ = splitext(filename)
         out = basename + '.csv'
     tools = importlib.import_module('gmesh.tools')
-    tools.spectrum(filename, out)
+    tools.spectrum(filename, out, plot)
 
 
 @main.command()
