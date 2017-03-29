@@ -1,4 +1,5 @@
 from collections import OrderedDict, namedtuple
+from itertools import product
 import matplotlib as mpl
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
@@ -6,6 +7,7 @@ import matplotlib.cm
 from mpl_toolkits.basemap import Basemap
 import numpy as np
 from operator import methodcaller
+from os.path import exists
 from PyQt5 import QtCore, QtGui, QtWidgets
 import sys
 
@@ -53,19 +55,18 @@ PROJECTIONS = OrderedDict([
     # ('vandg', Projection('vandg', 'van der Grinten', 'degrees')),
 ])
 
-CONTOURS = [1, 100, 200, 300, 400, 500,
-            700, 900, 1100, 1300, 1500,
-            1800, 2100, 2400, 2700, 3000]
+CONTOURS = [0, 2, 4, 6, 8, 10, 12, 14, 16, 20, 24]
 
 
 class BlockDrawer:
 
-    def __init__(self, block):
+    def __init__(self, block, draw, selected):
         self.block = block
-        self.selected = False
-        self.draw_field = False
+        self.selected = selected
+        self.draw_field = draw
         self.line = None
         self.contour = None
+        self.barbs = None
 
     def draw(self, m, clear=False):
         coords = [m(*p) for p in self.block.pts]
@@ -93,10 +94,20 @@ class BlockDrawer:
         if self.draw_field:
             self.block.compute()
             if clear or not self.contour:
-                self.contour = m.contourf(self.block.lons, self.block.lats,
-                                          self.block.data,
-                                          latlon=True, zorder=5, alpha=0.8,
-                                          cmap='terrain', levels=CONTOURS)
+                self.contour = m.contourf(
+                    self.block.lons, self.block.lats, self.block.data,
+                    latlon=True, zorder=5, alpha=0.6,
+                    levels=CONTOURS, vmin=0, vmax=24
+                )
+            if clear or not self.barbs:
+                K = 70
+                ix = (slice(K//2, None, K), slice(K//2, None, K))
+                self.barbs = m.barbs(
+                    self.block.lons[ix], self.block.lats[ix],
+                    self.block.x[ix], self.block.y[ix],
+                    self.block.data[ix],
+                    latlon=True, zorder=7, length=4, linewidth=0.5,
+                )
 
     def click(self, lon, lat):
         self.selected = self.block.contains(lat, lon)
@@ -105,15 +116,15 @@ class BlockDrawer:
 
 class MPLCanvas(FigureCanvas):
 
-    def __init__(self, parent=None, width=5, height=4, dpi=100):
+    def __init__(self, parent=None, width=20, height=16, dpi=200):
         fig = Figure(figsize=(width, height), dpi=dpi)
         self.axes = fig.add_subplot(111)
         fig.subplots_adjust(left=0.01, right=0.99, bottom=0.01, top=0.99)
 
-        self.scale = 2.5e6
-        self.pos = (10.39, 63.43)
+        self.scale = 2.7e6
+        self.pos = (15.00, 63.06)
         self._projection = 'aeqd'
-        self._resolution = 'c'
+        self._resolution = 'i'
         self.blocks = []
         self.selected = []
 
@@ -127,6 +138,8 @@ class MPLCanvas(FigureCanvas):
         self.updateGeometry()
 
         self.compute()
+
+        self.fig = fig
 
     @property
     def projection(self):
@@ -146,8 +159,11 @@ class MPLCanvas(FigureCanvas):
         self._resolution = value
         self.full_refresh()
 
-    def add_block(self, block):
-        self.blocks.append(BlockDrawer(block))
+    def add_block(self, block, draw=False, selected=False):
+        self.blocks.append(BlockDrawer(block, draw, selected))
+
+    def remove_blocks(self):
+        self.blocks = []
 
     def compute(self):
         self.axes.clear()
@@ -179,9 +195,10 @@ class MPLCanvas(FigureCanvas):
 
         m = Basemap(**kwargs)
         m.drawcoastlines()
-        m.drawcountries(linestyle='dashed')
-        m.drawmapboundary(fill_color='aqua')
-        m.fillcontinents(color='coral', lake_color='aqua')
+        m.shadedrelief()
+        # m.drawcountries(linestyle='dashed')
+        # m.drawmapboundary(fill_color='aqua')
+        # m.fillcontinents(color='coral', lake_color='aqua')
         m.drawparallels(np.arange(-80,81,10))
         m.drawmeridians(np.arange(-180,180,10))
 
@@ -317,12 +334,25 @@ class MainWindow(QtWidgets.QMainWindow):
             self.canvas.partial_refresh()
 
     def open_net(self):
-        # fn, ok = QtWidgets.QInputDialog.getText(self, 'Open network content', 'URL')
-        # if ok and fn:
-        fn = 'http://thredds.met.no/thredds/dodsC/fsiwt/AM25_Coupled2W_2015/netcdf_full/AM25_Coupled2W_2015011000_full.nc'
-        for block in data.read(fn):
-            self.canvas.add_block(block)
-        self.canvas.partial_refresh()
+        dates = ['01{:0>2}'.format(d) for d in range(5, 32)]
+        dates.extend('02{:0>2}'.format(d) for d in range(1, 15))
+
+        base = 'http://thredds.met.no/thredds/dodsC/fsiwt/AM25_Coupled2W_2015/netcdf/AM25_Coupled2W_2015{}00.nc'
+        frameno = 0
+        for d in dates:
+            self.canvas.remove_blocks()
+            fn = base.format(d)
+            block = next(data.read(fn))
+            self.canvas.add_block(block, True, True)
+            for t in range(24):
+                fn = 'frame{:0>3}.png'.format(frameno)
+                frameno += 1
+                print(d, t, fn)
+                if exists(fn):
+                    continue
+                block.time = t
+                self.canvas.full_refresh()
+                self.canvas.fig.savefig(fn, dpi=200)
 
     def read_file(self, *args, **kwargs):
         print(args, kwargs)
