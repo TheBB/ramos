@@ -233,6 +233,8 @@ class NetCDFFile:
         self.pts = list(zip(lon, lat))
 
         self.nc4 = data
+        self.time = 0
+        self.fields = ['x_wind_10m', 'y_wind_10m']
 
     def contains(self, lat, lon):
         return self.path.contains_point((lat, lon))
@@ -240,10 +242,12 @@ class NetCDFFile:
     def compute(self):
         self.lats = self.nc4['latitude'][:]
         self.lons = self.nc4['longitude'][:]
-        time = getattr(self, 'time') if hasattr(self, 'time') else 0
-        self.x = self.nc4['x_wind_10m'][self.time, 0, :, :]
-        self.y = self.nc4['y_wind_10m'][self.time, 0, :, :]
-        self.data = np.sqrt(self.x**2 + self.y**2)
+        self.data = self.nc4[self.fields[0]][self.time, 0, :, :]
+        if len(self.fields) > 1:
+            self.data = self.data ** 2
+            for f in self.fields[1:]:
+                self.data += self.nc4[f][self.time, 0, :, :] ** 2
+            self.data = np.sqrt(self.data)
 
 
 class VTKFile:

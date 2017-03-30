@@ -66,7 +66,15 @@ class BlockDrawer:
         self.draw_field = draw
         self.line = None
         self.contour = None
-        self.barbs = None
+
+    def next_time(self):
+        self.block.time += 1
+
+    def prev_time(self):
+        self.block.time -= 1
+
+    def set_field(self, field):
+        self.block.fields = field.split()
 
     def draw(self, m, clear=False):
         coords = [m(*p) for p in self.block.pts]
@@ -97,16 +105,6 @@ class BlockDrawer:
                 self.contour = m.contourf(
                     self.block.lons, self.block.lats, self.block.data,
                     latlon=True, zorder=5, alpha=0.6,
-                    levels=CONTOURS, vmin=0, vmax=24
-                )
-            if clear or not self.barbs:
-                K = 70
-                ix = (slice(K//2, None, K), slice(K//2, None, K))
-                self.barbs = m.barbs(
-                    self.block.lons[ix], self.block.lats[ix],
-                    self.block.x[ix], self.block.y[ix],
-                    self.block.data[ix],
-                    latlon=True, zorder=7, length=4, linewidth=0.5,
                 )
 
     def click(self, lon, lat):
@@ -124,7 +122,7 @@ class MPLCanvas(FigureCanvas):
         self.scale = 2.7e6
         self.pos = (15.00, 63.06)
         self._projection = 'aeqd'
-        self._resolution = 'i'
+        self._resolution = 'c'
         self.blocks = []
         self.selected = []
 
@@ -195,10 +193,9 @@ class MPLCanvas(FigureCanvas):
 
         m = Basemap(**kwargs)
         m.drawcoastlines()
-        m.shadedrelief()
-        # m.drawcountries(linestyle='dashed')
-        # m.drawmapboundary(fill_color='aqua')
-        # m.fillcontinents(color='coral', lake_color='aqua')
+        m.drawcountries(linestyle='dashed')
+        m.drawmapboundary(fill_color='aqua')
+        m.fillcontinents(color='coral', lake_color='aqua')
         m.drawparallels(np.arange(-80,81,10))
         m.drawmeridians(np.arange(-180,180,10))
 
@@ -224,6 +221,25 @@ class MPLCanvas(FigureCanvas):
         for b in self.selected:
             b.draw_field = True
         self.partial_refresh()
+
+    def delete_blocks(self):
+        self.blocks = [b for b in self.blocks if not b in self.selected]
+        self.full_refresh()
+
+    def next_time(self):
+        for b in self.selected:
+            b.next_time()
+        self.full_refresh()
+
+    def prev_time(self):
+        for b in self.selected:
+            b.prev_time()
+        self.full_refresh()
+
+    def set_field(self, field):
+        for b in self.selected:
+            b.set_field(field)
+        self.full_refresh()
 
     def wheelEvent(self, event):
         self.zoom(-1 if event.angleDelta().y() > 0 else 1)
@@ -334,25 +350,11 @@ class MainWindow(QtWidgets.QMainWindow):
             self.canvas.partial_refresh()
 
     def open_net(self):
-        dates = ['01{:0>2}'.format(d) for d in range(5, 32)]
-        dates.extend('02{:0>2}'.format(d) for d in range(1, 15))
-
-        base = 'http://thredds.met.no/thredds/dodsC/fsiwt/AM25_Coupled2W_2015/netcdf/AM25_Coupled2W_2015{}00.nc'
-        frameno = 0
-        for d in dates:
-            self.canvas.remove_blocks()
-            fn = base.format(d)
-            block = next(data.read(fn))
-            self.canvas.add_block(block, True, True)
-            for t in range(24):
-                fn = 'frame{:0>3}.png'.format(frameno)
-                frameno += 1
-                print(d, t, fn)
-                if exists(fn):
-                    continue
-                block.time = t
-                self.canvas.full_refresh()
-                self.canvas.fig.savefig(fn, dpi=200)
+        fn, ok = QtWidgets.QInputDialog.getText(self, 'Open network content', 'URL')
+        if ok and fn:
+            for block in data.read(fn):
+                self.canvas.add_block(block)
+            self.canvas.partial_refresh()
 
     def read_file(self, *args, **kwargs):
         print(args, kwargs)
@@ -362,6 +364,16 @@ class MainWindow(QtWidgets.QMainWindow):
             self.close()
         elif event.text() == 'c':
             self.canvas.block_options()
+        elif event.text() == 'd':
+            self.canvas.delete_blocks()
+        elif event.text() == 'j':
+            self.canvas.next_time()
+        elif event.text() == 'k':
+            self.canvas.prev_time()
+        elif event.text() == 'f':
+            field, ok = QtWidgets.QInputDialog.getText(self, 'Show field', 'Field')
+            if ok and field:
+                self.canvas.set_field(field)
         elif event.text() in {'+', '='}:
             self.canvas.zoom(-1)
         elif event.text() == '-':
