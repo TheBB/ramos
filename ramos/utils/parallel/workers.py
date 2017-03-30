@@ -8,12 +8,10 @@ def energy_content(source, level, field, mx):
 
 def normalized_coeffs(source, level, fields, mx, area):
     coeffs = source.coefficients(fields, level)
-    # scale = np.sum(coeffs) / len(coeffs)
     scale = np.sum(mx.dot(coeffs)) / area
     coeffs -= scale
     return coeffs
 
 
 def correlation(ca, cb, mx):
-    # return ca.dot(cb)
     return mx.dot(ca).dot(cb)
