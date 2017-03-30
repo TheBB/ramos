@@ -19,9 +19,8 @@ class Field:
 
 class DataSource:
 
-    def __init__(self, pardim, variates, ntimes):
+    def __init__(self, pardim, ntimes):
         self.pardim = pardim
-        self.variates = variates
         self.ntimes = ntimes
         self._fields = {}
         self._mass = {}
@@ -56,6 +55,8 @@ class DataSource:
             field = self.field(name)
             if name not in self._mass:
                 self._mass[name] = self.field_mass_matrix(field)
+            d, r, c = self._mass[name]
+            print(d.shape, r.shape, c.shape, min(r), max(r), min(c), max(c))
             builder.add(*self._mass[name], field.ncomps, scale)
         return builder.build()
 
@@ -70,18 +71,17 @@ class DataSource:
 
     @abstractmethod
     def field_mass_matrix(self, field):
-        pass
+        raise NotImplementedError
 
     @abstractmethod
     def field_coefficients(self, field, level=0):
-        pass
+        raise NotImplementedError
 
     def __str__(self):
-        return '{}(ntimes={}, pardim={}, variates=[{}], fields=[{}])'.format(
+        return '{}(ntimes={}, pardim={}, fields=[{}])'.format(
             self.__class__.__name__,
             self.ntimes,
             self.pardim,
-            ','.join('xyz'[i] for i in self.variates),
             ','.join('{}({},{})'.format(f.name, f.size, f.ncomps)
                      for f in self.fields()),
         )

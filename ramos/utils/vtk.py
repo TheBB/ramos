@@ -1,4 +1,5 @@
 from itertools import product, repeat, chain
+import logging
 from multiprocessing import Pool
 import numpy as np
 from vtk import vtkUnstructuredGrid, vtkPolyData
@@ -28,6 +29,8 @@ def decompose(dataset, variates):
         j += 1
         cell_indices[i,:l] = cell_raw[j:j+l]
         j += l
+
+    logging.debug('Mesh with %d cells, max size %d', ncells, cellsize)
 
     # cell_points: each row contains a npts × 3 matrix with actual points,
     # possibly filled with NaNs on the end for variable cell sizes
@@ -84,7 +87,10 @@ def element_mass_matrix(indices, points, pardim):
     result = [0.0 for _ in range(npts*npts)]
     for pt, wt in quadrature:
         for i, bfs in enumerate(product(basis, repeat=2)):
-            result[i] += wt * bfs[0](*pt) * bfs[1](*pt) * jac(*pt)
+            j = jac(*pt)
+            if j <= 0:
+                raise ValueError('Negative Jacobian')
+            result[i] += wt * bfs[0](*pt) * bfs[1](*pt) * j
 
     indices = list(product(indices[np.where(indices >= 0)], repeat=2))
     row_inds = [i[0] for i in indices]
@@ -98,12 +104,12 @@ def mass_matrix(dataset, variates, parallel=True):
     indices, points = decompose(dataset, variates)
 
     # Each worker returns a tuple of: flat matrix, row indices, column indices
+    args = zip(indices, points, repeat(len(variates)))
     if parallel:
         pool = Pool()
-        ret = pool.starmap(element_mass_matrix, zip(indices, points, repeat(len(variates))))
+        ret = pool.starmap(element_mass_matrix, args)
     else:
-        ret = [element_mass_matrix(*args)
-               for args in zip(indices, points, repeat(len(variates)))]
+        ret = [element_mass_matrix(*arg) for arg in args]
 
     # Form complete data arrays
     return tuple(

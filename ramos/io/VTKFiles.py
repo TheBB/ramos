@@ -14,8 +14,8 @@ class VTKFiles(DataSource):
         xmin, xmax, ymin, ymax, zmin, zmax = dataset.GetBounds()
         variates = [xmin != xmax, ymin != ymax, zmin != zmax]
         pardim = sum(variates)
-        variates = [i for i, v in enumerate(variates) if v]
-        super(VTKFiles, self).__init__(pardim, variates, len(files))
+        super(VTKFiles, self).__init__(pardim, len(files))
+        self.variates = [i for i, v in enumerate(variates) if v]
 
         pointdata = dataset.GetPointData()
         for i in range(pointdata.GetNumberOfArrays()):

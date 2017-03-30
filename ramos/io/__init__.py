@@ -4,6 +4,7 @@ from os.path import abspath, dirname, exists, isdir, isfile, join, splitext
 from os import listdir
 
 from ramos.io.DataSource import DataSource
+from ramos.io.IFEMFile import IFEMFile
 from ramos.io.VTKFiles import VTKFiles
 from ramos.io.VTKTimeDirs import VTKTimeDirs
 
@@ -65,11 +66,11 @@ def _load_file(filename, fields):
             raise FileNotFoundError()
         return DataSource(filename)
 
-    if ext == '.hdf5':
+    if ext in {'.hdf5', '.h5'}:
         dep_file = '{}.xml'.format(basename)
         if not exists(dep_file):
             raise FileNotFoundError()
-        return DataSource(filename)
+        return IFEMFile(filename)
 
 
 def load(filename, fields=[]):

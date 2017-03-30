@@ -21,8 +21,8 @@ class VTKTimeDirs(DataSource):
         xmin, xmax, ymin, ymax, zmin, zmax = dataset.GetBounds()
         variates = [xmin != xmax, ymin != ymax, zmin != zmax]
         pardim = sum(variates)
-        variates = [i for i, v in enumerate(variates) if v]
-        super(VTKTimeDirs, self).__init__(pardim, variates, len(paths))
+        super(VTKTimeDirs, self).__init__(pardim, len(paths))
+        self.variates = [i for i, v in enumerate(variates) if v]
 
         for fi in range(len(self.files)):
             dataset = self.dataset(0, fi)
