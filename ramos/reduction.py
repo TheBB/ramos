@@ -8,10 +8,11 @@ from ramos.utils.parallel.workers import energy_content, normalized_coeffs, corr
 
 class Reduction:
 
-    def __init__(self, sources, fields, error=0.05):
+    def __init__(self, sources, fields, sink, error=0.05):
         self.sources = sources
         self.master = sources[0].clone(clear_cache=True)
         self.fields = fields
+        self.sink = sink
         self.error = error
 
     def source_levels(self):
@@ -61,9 +62,19 @@ class Reduction:
         nmodes = min(np.where(np.cumsum(eigvals) > threshold)[0]) + 1
         actual_error = np.sqrt(np.sum(eigvals[nmodes:]) / scale)
         logging.info(
-            '%d modes suffice for %.2f%% (threshold %.2f%%)',
+            '%d modes suffice for %.2f%% error (threshold %.2f%%)',
             nmodes, 100*actual_error, 100*self.error
         )
+
+        logging.info('Writing %d modes', nmodes)
+        with self.sink as sink:
+            for i in range(nmodes):
+                sink.add_level(i)
+                mode = np.zeros(ensemble[0].shape)
+                for j, e in enumerate(ensemble):
+                    mode += eigvecs[j,i] * e
+                mode /= np.sqrt(eigvals[i])
+                sink.write_fields(i, mode, self.fields)
 
     def compute_scales(self):
         if self.nfields == 1:

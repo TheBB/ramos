@@ -3,13 +3,13 @@ from operator import itemgetter
 from os.path import abspath, dirname, exists, isdir, isfile, join, splitext
 from os import listdir
 
-from ramos.io.DataSource import DataSource
-from ramos.io.IFEMFile import IFEMFile
-from ramos.io.VTKFiles import VTKFiles
-from ramos.io.VTKTimeDirs import VTKTimeDirs
+from ramos.io.Base import DataSource
+from ramos.io.IFEMFile import IFEMFileSource
+from ramos.io.VTKFiles import VTKFilesSource
+from ramos.io.VTKTimeDirs import VTKTimeDirsSource
 
 
-__all__ = ['load', 'DataFileType']
+__all__ = ['load', 'DataSourceType']
 
 
 def vtk_split(filename):
@@ -50,9 +50,9 @@ def _load_dir(path, fields):
 
     if dirs and (not files or len(dirs) > len(files)):
         dirs = [d for _, d in sorted(dirs.items(), key=itemgetter(0))]
-        return VTKTimeDirs(dirs)
+        return VTKTimeDirsSource(dirs)
     elif files:
-        return VTKFiles(files)
+        return VTKFilesSource(files)
     else:
         print('Nothing')
 
@@ -70,7 +70,7 @@ def _load_file(filename, fields):
         dep_file = '{}.xml'.format(basename)
         if not exists(dep_file):
             raise FileNotFoundError()
-        return IFEMFile(filename)
+        return IFEMFileSource(filename)
 
 
 def load(filename, fields=[]):
@@ -85,7 +85,7 @@ def load(filename, fields=[]):
     return obj
 
 
-class DataFileType(click.ParamType):
+class DataSourceType(click.ParamType):
     name = 'data'
 
     def convert(self, value, param, ctx):

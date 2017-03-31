@@ -1,11 +1,11 @@
 from vtk import vtkDataSetReader
 from vtk.util.numpy_support import vtk_to_numpy
 
-from ramos.io.DataSource import DataSource
+from ramos.io.Base import DataSource
 from ramos.utils.vtk import mass_matrix
 
 
-class VTKFiles(DataSource):
+class VTKFilesSource(DataSource):
 
     def __init__(self, files):
         self.files = files
@@ -14,7 +14,7 @@ class VTKFiles(DataSource):
         xmin, xmax, ymin, ymax, zmin, zmax = dataset.GetBounds()
         variates = [xmin != xmax, ymin != ymax, zmin != zmax]
         pardim = sum(variates)
-        super(VTKFiles, self).__init__(pardim, len(files))
+        super(VTKFilesSource, self).__init__(pardim, len(files))
         self.variates = [i for i, v in enumerate(variates) if v]
 
         pointdata = dataset.GetPointData()

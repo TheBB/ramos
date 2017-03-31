@@ -19,7 +19,7 @@ def main(verbosity):
 
 
 @main.command()
-@click.argument('data', type=io.DataFileType())
+@click.argument('data', type=io.DataSourceType())
 def summary(data):
     print(data)
 
@@ -27,9 +27,11 @@ def summary(data):
 @main.command()
 @click.option('--fields', '-f', type=str, multiple=True)
 @click.option('--error', '-e', type=float, default=0.05)
-@click.argument('sources', type=io.DataFileType(), nargs=-1)
-def reduce(fields, error, sources):
-    r = Reduction(sources, fields, error)
+@click.option('--out', '-o', type=str, default='out')
+@click.argument('sources', type=io.DataSourceType(), nargs=-1)
+def reduce(fields, error, out, sources):
+    sink = sources[0].sink(out)
+    r = Reduction(sources, fields, sink, error)
     r.reduce()
 
 

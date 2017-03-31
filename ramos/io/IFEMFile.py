@@ -6,7 +6,7 @@ import numpy as np
 from os.path import splitext
 import splipy.IO
 
-from ramos.io.DataSource import DataSource
+from ramos.io.Base import DataSource
 from ramos.utils.splipy import mass_matrix
 
 
@@ -21,7 +21,7 @@ class G2Object(splipy.IO.G2):
         return self
 
 
-class IFEMFile(DataSource):
+class IFEMFileSource(DataSource):
 
     def __init__(self, filename):
         self.hdf_filename = filename
@@ -36,7 +36,7 @@ class IFEMFile(DataSource):
             ntimes = len(f)
 
         assert pardim == 2
-        super(IFEMFile, self).__init__(pardim, ntimes)
+        super(IFEMFileSource, self).__init__(pardim, ntimes)
 
         for xmlf in self.xml.findall("./entry[@type='field']"):
             name = xmlf.attrib['name']

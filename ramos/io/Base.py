@@ -81,6 +81,10 @@ class DataSource:
     def field_coefficients(self, field, level=0):
         raise NotImplementedError
 
+    @abstractmethod
+    def sink(self, *args, **kwargs):
+        raise NotImplementedError
+
     def __str__(self):
         return '{}(ntimes={}, pardim={}, fields=[{}])'.format(
             self.__class__.__name__,
@@ -89,3 +93,7 @@ class DataSource:
             ','.join('{}({},{})'.format(f.name, f.size, f.ncomps)
                      for f in self.fields()),
         )
+
+
+class DataSink:
+    pass
