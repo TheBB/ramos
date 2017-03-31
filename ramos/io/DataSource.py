@@ -43,7 +43,7 @@ class DataSource:
     def levels(self):
         yield from range(0, self.ntimes)
 
-    def mass_matrix(self, fields):
+    def mass_matrix(self, fields, single=False):
         if isinstance(fields, str):
             fields = [fields]
         builder = MatrixBuilder()
@@ -56,18 +56,22 @@ class DataSource:
             if name not in self._mass:
                 self._mass[name] = self.field_mass_matrix(field)
             d, r, c = self._mass[name]
-            print(d.shape, r.shape, c.shape, min(r), max(r), min(c), max(c))
-            builder.add(*self._mass[name], field.ncomps, scale)
+            builder.add(*self._mass[name], 1 if single else field.ncomps, scale)
         return builder.build()
 
     def coefficients(self, fields, level=0, flatten=True):
-        array = np.hstack([
+        if isinstance(fields, str):
+            field = self.field(fields)
+            coeffs = self.field_coefficients(field, level)
+            if flatten:
+                return coeffs
+            return np.reshape(coeffs, (field.size, field.ncomps))
+        if not flatten:
+            raise ValueError
+        return np.hstack([
             self.field_coefficients(self.field(name), level)
             for name in fields
         ])
-        if flatten:
-            return np.reshape(array, (np.prod(array.shape),))
-        return array
 
     @abstractmethod
     def field_mass_matrix(self, field):

@@ -30,13 +30,17 @@ class Reduction:
     def reduce(self):
         self.compute_scales()
 
-        logging.info('Computing master mass matrix')
-        mass = self.master.mass_matrix(list(zip(self.fields, self.scales)))
-        logging.debug('Mass matrix is %d × %d', *mass.shape)
+        logging.info('Computing single-component mass matrices')
+        mass = {}
+        for field in self.fields:
+            mass[field] = self.master.mass_matrix(field, single=True)
 
         logging.info('Normalizing ensemble')
         args = self.source_levels()
-        ensemble = parmap(normalized_coeffs, args, (self.fields, mass, mass.sum()))
+        ensemble = parmap(normalized_coeffs, args, (self.fields, mass))
+
+        logging.info('Computing master mass matrix')
+        mass = self.master.mass_matrix(self.fields)
 
         logging.info('Computing correlation matrix')
         args = list(combinations_with_replacement(ensemble, 2))
@@ -60,7 +64,6 @@ class Reduction:
             '%d modes suffice for %.2f%% (threshold %.2f%%)',
             nmodes, 100*actual_error, 100*self.error
         )
-        print(eigvals[:10] / scale)
 
     def compute_scales(self):
         if self.nfields == 1:

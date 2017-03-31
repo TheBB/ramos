@@ -6,11 +6,15 @@ def energy_content(source, level, field, mx):
     return mx.dot(coeffs).dot(coeffs)
 
 
-def normalized_coeffs(source, level, fields, mx, area):
-    coeffs = source.coefficients(fields, level)
-    scale = np.sum(mx.dot(coeffs)) / area
-    coeffs -= scale
-    return coeffs
+def normalized_coeffs(source, level, fields, mass):
+    ret = []
+    for field in fields:
+        mx = mass[field]
+        coeffs = source.coefficients(field, level, flatten=False)
+        mean = np.sum(mx.dot(coeffs), axis=0) / mx.sum()
+        coeffs -= mean
+        ret.append(np.ndarray.flatten(coeffs))
+    return np.hstack(coeffs)
 
 
 def correlation(ca, cb, mx):
