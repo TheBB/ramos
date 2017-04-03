@@ -2,7 +2,7 @@ from itertools import product, repeat, chain
 import logging
 from multiprocessing import Pool
 import numpy as np
-from vtk import vtkUnstructuredGrid, vtkPolyData
+import vtk
 from vtk.util.numpy_support import vtk_to_numpy
 
 from ramos.utils.quadrature import triangular
@@ -11,9 +11,9 @@ from ramos.utils.quadrature import triangular
 def decompose(dataset, variates):
     # cell_indices: each row contains the point indices for that cell,
     # possibly filled with -1 on the end for variable cell sizes
-    if isinstance(dataset, vtkUnstructuredGrid):
+    if isinstance(dataset, vtk.vtkUnstructuredGrid):
         cells = dataset.GetCells()
-    elif isinstance(dataset, vtkPolyData):
+    elif isinstance(dataset, vtk.vtkPolyData):
         cells = dataset.GetPolys()
     else:
         raise TypeError('Unknown dataset type')
@@ -116,3 +116,13 @@ def mass_matrix(dataset, variates, parallel=True):
         np.array(list(chain.from_iterable(r[i] for r in ret)))
         for i in range(3)
     )
+
+
+def write_to_file(dataset, filename):
+    if isinstance(dataset, vtk.vtkPolyData):
+        writer = vtk.vtkPolyDataWriter()
+    elif isinstance(dataset, vtk.vtkUnstructuredGrid):
+        writer = vtk.vtkUnstructuredGridWriter()
+    writer.SetFileName(filename)
+    writer.SetInputData(dataset)
+    writer.Write()

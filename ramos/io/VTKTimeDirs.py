@@ -6,7 +6,8 @@ import vtk
 from vtk.util.numpy_support import vtk_to_numpy, numpy_to_vtk
 
 from ramos.io.Base import DataSource, DataSink
-from ramos.utils.vtk import mass_matrix
+from ramos.utils.vectors import decompose
+from ramos.utils.vtk import mass_matrix, write_to_file
 
 
 class VTKTimeDirsSource(DataSource):
@@ -80,14 +81,8 @@ class VTKTimeDirsSink(DataSink):
         self.paths.append(path)
 
     def write_fields(self, level, coeffs, fields):
-        data = []
-        glob_index = 0
-        for field in fields:
-            field = self.parent.field(field)
-            n = field.size * field.ncomps
-            c = np.reshape(coeffs[glob_index:glob_index+n], (field.size, field.ncomps))
-            data.append((field, c))
-            glob_index += n
+        fields = [self.parent.field(f) for f in fields]
+        data = list(zip(fields, decompose(fields, coeffs)))
 
         key = lambda d: d[0].file_index
         data = sorted(data, key=key)
@@ -101,10 +96,4 @@ class VTKTimeDirsSink(DataSink):
                 array.SetName(field.name)
                 pointdata.AddArray(array)
 
-            if isinstance(dataset, vtk.vtkPolyData):
-                writer = vtk.vtkPolyDataWriter()
-            elif isinstance(dataset, vtk.vtkUnstructuredGrid):
-                writer = vtk.vtkUnstructuredGridWriter()
-            writer.SetFileName(join(self.paths[level], self.parent.files[file_index]))
-            writer.SetInputData(dataset)
-            writer.Write()
+            write_to_file(dataset, join(self.paths[level], self.parent.files[file_index]))

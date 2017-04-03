@@ -1,8 +1,11 @@
+from os import makedirs
+from os.path import exists, isdir, join, split
 from vtk import vtkDataSetReader
-from vtk.util.numpy_support import vtk_to_numpy
+from vtk.util.numpy_support import vtk_to_numpy, numpy_to_vtk
 
-from ramos.io.Base import DataSource
-from ramos.utils.vtk import mass_matrix
+from ramos.io.Base import DataSource, DataSink
+from ramos.utils.vectors import decompose
+from ramos.utils.vtk import mass_matrix, write_to_file
 
 
 class VTKFilesSource(DataSource):
@@ -38,3 +41,43 @@ class VTKFilesSource(DataSource):
         pointdata = dataset.GetPointData()
         array = pointdata.GetAbstractArray(field.name)
         return vtk_to_numpy(array)
+
+    def sink(self, *args, **kwargs):
+        return VTKFilesSink(self, *args, **kwargs)
+
+
+class VTKFilesSink(DataSink):
+
+    def __init__(self, parent, path, basename='mode'):
+        self.parent = parent
+        self.path = path
+        self.basename = basename
+        self.files = []
+
+    def __enter__(self):
+        if not exists(self.path):
+            makedirs(self.path)
+        if not isdir(self.path):
+            raise IOError
+        return self
+
+    def __exit__(self, type, value, backtrace):
+        pass
+
+    def add_level(self, time):
+        self.files.append('{}-{}.vtk'.format(join(self.path, self.basename), len(self.files)))
+
+    def write_fields(self, level, coeffs, fields):
+        fields = [self.parent.field(f) for f in fields]
+        field_coeffs = decompose(fields, coeffs)
+
+        dataset = self.parent.dataset(level)
+        pointdata = dataset.GetPointData()
+        while pointdata.GetNumberOfArrays() > 0:
+            pointdata.RemoveArray(0)
+        for field, coeffs in zip(fields, field_coeffs):
+            array = numpy_to_vtk(coeffs, deep=1)
+            array.SetName(field.name)
+            pointdata.AddArray(array)
+
+        write_to_file(dataset, self.files[level])
