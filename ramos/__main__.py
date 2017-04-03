@@ -31,7 +31,7 @@ def summary(data):
 @click.argument('sources', type=io.DataSourceType(), nargs=-1)
 def reduce(fields, error, out, sources):
     sink = sources[0].sink(out)
-    r = Reduction(sources, fields, sink, error)
+    r = Reduction(sources, fields, sink, out, error)
     r.reduce()
 
 
