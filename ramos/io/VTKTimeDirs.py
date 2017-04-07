@@ -51,6 +51,14 @@ class VTKTimeDirsSource(DataSource):
         array = pointdata.GetAbstractArray(field.name)
         return vtk_to_numpy(array)
 
+    def tesselate(self, field, level=0):
+        field = self.field(field)
+        dataset = self.dataset(level, field.file_index)
+        points = vtk_to_numpy(dataset.GetPoints().GetData())
+        x, y = (points[...,i] for i in self.variates)
+        coeffs = vtk_to_numpy(dataset.GetPointData().GetAbstractArray(field.name))
+        return x, y, coeffs
+
     def sink(self, *args, **kwargs):
         return VTKTimeDirsSink(self, *args, **kwargs)
 

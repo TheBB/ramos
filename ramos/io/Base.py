@@ -82,6 +82,10 @@ class DataSource:
         raise NotImplementedError
 
     @abstractmethod
+    def tesselate(self, field, level=0):
+        raise NotImplementedError
+
+    @abstractmethod
     def sink(self, *args, **kwargs):
         raise NotImplementedError
 
