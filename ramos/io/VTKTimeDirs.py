@@ -22,7 +22,10 @@ class VTKTimeDirsSource(DataSource):
 
         dataset = self.dataset(0, 0)
         xmin, xmax, ymin, ymax, zmin, zmax = dataset.GetBounds()
-        variates = [xmin != xmax, ymin != ymax, zmin != zmax]
+        variates = [
+            abs(a - b) > 1e-5
+            for a, b in ((xmin,xmax), (ymin,ymax), (zmin,zmax))
+        ]
         pardim = sum(variates)
         super(VTKTimeDirsSource, self).__init__(pardim, len(paths))
         self.variates = [i for i, v in enumerate(variates) if v]
