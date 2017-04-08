@@ -6,8 +6,9 @@ import numpy as np
 from os.path import splitext
 import splipy.IO
 
-from ramos.io.Base import DataSource
+from ramos.io.Base import DataSource, DataSink
 from ramos.utils.splipy import mass_matrix
+from ramos.utils.vectors import decompose
 
 
 class G2Object(splipy.IO.G2):
@@ -19,6 +20,13 @@ class G2Object(splipy.IO.G2):
 
     def __enter__(self):
         return self
+
+
+def obj_to_string(obj):
+    s = StringIO()
+    with IFEMFile.G2Object(s, 'w') as f:
+        f.write(obj)
+    return s.getvalue()
 
 
 class IFEMFileSource(DataSource):
@@ -83,3 +91,58 @@ class IFEMFileSource(DataSource):
                 f['{}/{}/{}'.format(level, pid+1, field.name)][:]
                 for pid in range(npatches)
             ])
+
+    def sink(self, *args, **kwargs):
+        return IFEMFileSink(self, *args, **kwargs)
+
+
+class IFEMFileSink(DataSink):
+
+    def __init__(self, parent, path):
+        self.parent = parent
+        self.hdf5_filename = path
+        basename, _ = splitext(path)
+        self.xml_filename = '{}.xml'.format(path)
+
+    def __enter__(self):
+        self.hdf5 = h5py.File(self.hdf5_filename, 'w')
+        self.dom = etree.Element('info')
+
+    def __exit__(self, type_, value, backtrace):
+        self.hdf5.close()
+        with open(self.xml_filename, 'wb') as f:
+            f.write(etree.tostring(
+                self.dom, pretty_print=True, encoding='utf-8',
+                xml_declaration=True, standalone=True,
+            ))
+
+    def add_level(self, time):
+        index = len(self.hdf5)
+        self.hdf5.require_group(str(index))
+
+    def ensure_basis(self, basis):
+        grp = self.hdf5.require_group('0/basis')
+        if basis in grp:
+            return
+        grp = grp.require_group(basis)
+        for i, patch in enumerate(self.parent.patches(basis)):
+            ints = np.fromstring(obj_to_string(patch), dtype=np.int8)
+            pid = str(i + 1)
+            if pid in grp:
+                del grp[pid]
+            grp.create_dataset(pid, data=ints, dtype=np.int8)
+
+    def write_fields(self, level, coeffs, fields):
+        fields = [self.parent.field(f) for f in fields]
+        field_coeffs = decompose(fields, coeffs)
+
+        for field, coeffs in zip(fields, field_coeffs):
+            self.ensure_basis(field.basis)
+            glob_index = 0
+            for i, patch in enumerate(self.parent.patches(field.basis)):
+                grp = self.hdf5.require_group('{}/{}'.format(level, i+1))
+                if field.name in grp:
+                    del grp[field.name]
+                n = len(patch) * field.ncomps
+                grp.create_dataset(field.name, data=coeffs[glob_index:glob_index+n])
+                glob_index += n

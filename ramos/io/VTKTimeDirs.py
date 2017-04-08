@@ -80,7 +80,7 @@ class VTKTimeDirsSink(DataSink):
             raise IOError
         return self
 
-    def __exit__(self, type, value, backtrace):
+    def __exit__(self, type_, value, backtrace):
         pass
 
     def add_level(self, time):
