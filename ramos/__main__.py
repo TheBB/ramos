@@ -30,10 +30,11 @@ def summary(data):
 @click.option('--fields', '-f', type=str, multiple=True)
 @click.option('--error', '-e', type=float, default=0.05)
 @click.option('--out', '-o', type=str, default='out')
+@click.option('--min-modes', type=int, default=10)
 @click.argument('sources', type=io.DataSourceType(), nargs=-1)
-def reduce(fields, error, out, sources):
+def reduce(fields, error, out, min_modes, sources):
     sink = sources[0].sink(out)
-    r = Reduction(sources, fields, sink, out, error)
+    r = Reduction(sources, fields, sink, out, min_modes, error)
     r.reduce()
 
 
@@ -42,9 +43,10 @@ def reduce(fields, error, out, sources):
 @click.option('--level', '-l', type=int, default=0)
 @click.option('--out', '-o', type=str)
 @click.option('--scale/--no-scale', default=False)
+@click.option('--smooth/--no-smooth', default=False)
 @click.option('--show/--no-show', default=False)
 @click.argument('source', type=io.DataSourceType())
-def plot(field, level, out, scale, show, source):
+def plot(field, level, out, scale, smooth, show, source):
     assert source.pardim == 2
     if ':' in field:
         field, post = field.split(':')
@@ -67,7 +69,7 @@ def plot(field, level, out, scale, show, source):
     Triangulation = import_module('matplotlib.tri').Triangulation
 
     tri = Triangulation(x, y)
-    plt.tripcolor(tri, coeffs, shading='gouraud')
+    plt.tripcolor(tri, coeffs, shading=('gouraud' if smooth else 'flat'))
 
     plt.axes().set_aspect(1)
     plt.tick_params(axis='x', which='both', bottom='off', top='off', labelbottom='off')

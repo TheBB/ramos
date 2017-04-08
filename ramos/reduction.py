@@ -8,12 +8,13 @@ from ramos.utils.parallel.workers import energy_content, normalized_coeffs, corr
 
 class Reduction:
 
-    def __init__(self, sources, fields, sink, output, error=0.05):
+    def __init__(self, sources, fields, sink, output, min_modes=10, error=0.05):
         self.sources = sources
         self.master = sources[0].clone(clear_cache=True)
         self.fields = fields
         self.sink = sink
         self.output = output
+        self.min_modes = min_modes
         self.error = error
 
     def source_levels(self):
@@ -67,6 +68,7 @@ class Reduction:
             nmodes, 100*actual_error, 100*self.error
         )
 
+        nmodes = min(len(eigvals), max(nmodes, self.min_modes))
         logging.info('Writing %d modes', nmodes)
         with self.sink as sink:
             for i in range(nmodes):
@@ -79,8 +81,9 @@ class Reduction:
 
         with open(self.output + '.csv', 'w') as f:
             for i, ev in enumerate(eigvals):
-                f.write('{} {} {}\n'.format(
-                    i+1, ev, np.sqrt(np.sum(eigvals[i+1:]) / scale)
+                s = np.sum(eigvals[i+1:]) / scale
+                f.write('{} {} {} {}\n'.format(
+                    i+1, ev, s, np.sqrt(s)
                 ))
 
     def compute_scales(self):
