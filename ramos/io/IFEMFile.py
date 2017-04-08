@@ -1,6 +1,6 @@
 import h5py
 from io import StringIO
-from itertools import chain, product
+from itertools import chain, product, repeat
 from lxml import etree
 import numpy as np
 from os.path import splitext
@@ -37,14 +37,26 @@ class IFEMFileSource(DataSource):
         xml_filename = splitext(filename)[0] + '.xml'
         self.xml = etree.parse(xml_filename)
 
+        bases = []
         with self.hdf5() as f:
             basis = next(iter(f['0/basis']))
+            bases.append(basis)
             patch = self.patch(basis, 0)
             pardim = patch.pardim
             ntimes = len(f)
 
+        variates = repeat(False)
+        for basis in bases:
+            for patch in self.patches(basis):
+                cps = patch.controlpoints
+                variates = [
+                    v or abs(np.max(cps[...,d]) - np.min(cps[...,d])) > 1e-5
+                    for d, v in zip(range(patch.dimension), variates)
+                ]
+
         assert pardim == 2
         super(IFEMFileSource, self).__init__(pardim, ntimes)
+        self.variates = [i for i, v in enumerate(variates) if v]
 
         for xmlf in self.xml.findall("./entry[@type='field']"):
             name = xmlf.attrib['name']
@@ -91,6 +103,32 @@ class IFEMFileSource(DataSource):
                 f['{}/{}/{}'.format(level, pid+1, field.name)][:]
                 for pid in range(npatches)
             ])
+
+    def tesselate(self, field, level=0):
+        field = self.field(field)
+        coeffs = self.field_coefficients(field, level).reshape((field.size, field.ncomps))
+
+        xs, ys, zs = [], [], []
+        glob_index = 0
+        for i, patch in enumerate(self.patches(field.basis)):
+            params = patch.knots()
+            pts = patch(*params)
+            xs.append(np.ndarray.flatten(pts[..., self.variates[0]]))
+            ys.append(np.ndarray.flatten(pts[..., self.variates[1]]))
+
+            n = len(patch)
+            cps = coeffs[glob_index:glob_index+n,:]
+            shape = list(patch.shape)[::-1] + [field.ncomps]
+            cps = np.reshape(cps, shape)
+
+            axes = list(range(len(cps.shape)))
+            axes = axes[-2::-1] + [axes[-1]]
+            cps = np.transpose(cps, axes)
+            patch.controlpoints = cps
+
+            zs.append(np.reshape(patch(*params), (len(patch), field.ncomps)))
+
+        return (np.hstack(xs), np.hstack(ys), np.vstack(zs))
 
     def sink(self, *args, **kwargs):
         return IFEMFileSink(self, *args, **kwargs)
