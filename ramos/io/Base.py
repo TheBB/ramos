@@ -64,12 +64,12 @@ class DataSource:
             field = self.field(fields)
             coeffs = self.field_coefficients(field, level)
             if flatten:
-                return coeffs
+                return np.ndarray.flatten(coeffs)
             return np.reshape(coeffs, (field.size, field.ncomps))
         if not flatten:
             raise ValueError
         return np.hstack([
-            self.field_coefficients(self.field(name), level)
+            np.ndarray.flatten(self.field_coefficients(self.field(name), level))
             for name in fields
         ])
 

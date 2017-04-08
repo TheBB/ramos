@@ -18,12 +18,14 @@ class MatrixBuilder:
 
     def build(self):
         data, rows, cols = [], [], []
-        ncomps = sum(d['ncomps'] for d in self.data)
+        glob_index = 0
         for d in self.data:
-            data.extend([d['data']]*d['ncomps'])
-            for _ in range(d['ncomps']):
-                rows.append(ncomps * d['rows'] + len(rows))
-                cols.append(ncomps * d['cols'] + len(cols))
+            ncomps = d['ncomps']
+            data.extend([d['data']] * ncomps)
+            for i in range(ncomps):
+                rows.append(ncomps * d['rows'] + glob_index + i)
+                cols.append(ncomps * d['cols'] + glob_index + i)
+            glob_index += ncomps * len(d['data'])
 
         data, rows, cols = map(np.hstack, (data, rows, cols))
         mx = csr_matrix((data, (rows, cols)))
