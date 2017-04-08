@@ -87,9 +87,7 @@ def element_mass_matrix(indices, points, pardim):
     result = [0.0 for _ in range(npts*npts)]
     for pt, wt in quadrature:
         for i, bfs in enumerate(product(basis, repeat=2)):
-            j = jac(*pt)
-            if j <= 0:
-                raise ValueError('Negative Jacobian')
+            j = abs(jac(*pt))
             result[i] += wt * bfs[0](*pt) * bfs[1](*pt) * j
 
     indices = list(product(indices[np.where(indices >= 0)], repeat=2))
