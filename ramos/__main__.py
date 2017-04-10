@@ -78,7 +78,7 @@ def plot(field, level, out, scale, smooth, show, source):
     if scale:
         plt.colorbar()
     if out:
-        plt.savefig(out, bbox_inches='tight', pad_inches=0)
+        plt.savefig(out, bbox_inches='tight', pad_inches=0, dpi=300)
     if show:
         plt.show()
 
