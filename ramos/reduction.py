@@ -89,7 +89,7 @@ class Reduction:
             for i, ev in enumerate(eigvals):
                 s = np.sum(eigvals[i+1:]) / scale
                 f.write('{} {} {} {}\n'.format(
-                    i+1, ev, s, np.sqrt(s)
+                    i+1, ev/scale, s, np.sqrt(s)
                 ))
 
     def compute_scales(self):
