@@ -3,7 +3,7 @@ import logging
 import numpy as np
 
 from ramos.utils.parallel import parmap
-from ramos.utils.parallel.workers import energy_content, normalized_coeffs, correlation
+from ramos.utils.parallel.workers import energy_content, normalized_coeffs, mv_dot, vv_dot
 
 
 class Reduction:
@@ -45,9 +45,15 @@ class Reduction:
         logging.info('Computing master mass matrix')
         mass = self.master.mass_matrix(self.fields)
 
+        logging.info('Computing matrix-vector products')
+        ensemble_m = parmap(mv_dot, ensemble, (mass,), unwrap=False)
+
         logging.info('Computing correlation matrix')
-        args = list(combinations_with_replacement(ensemble, 2))
-        corrs = parmap(correlation, args, (mass,))
+        args = [
+            (a, b) for (a, _), (_, b) in
+            combinations_with_replacement(zip(ensemble, ensemble_m), 2)
+        ]
+        corrs = parmap(vv_dot, args)
         corrmx = np.empty((self.nsnaps, self.nsnaps))
         i, j = np.triu_indices(self.nsnaps)
         corrmx[i, j] = corrs

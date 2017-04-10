@@ -21,9 +21,11 @@ def delegate(pid, q, target, chunk, args, reduction):
         q.put((pid, result))
 
 
-def parmap(target, varying, constant, reduction=None, ncpus=None):
+def parmap(target, varying, constant=(), reduction=None, ncpus=None, unwrap=True):
     if not ncpus:
         ncpus = os.cpu_count()
+    if not unwrap:
+        varying = [(v,) for v in varying]
     chunks = split(varying, ncpus)
     q = Queue()
 

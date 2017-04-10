@@ -17,5 +17,9 @@ def normalized_coeffs(source, level, fields, mass):
     return np.hstack(coeffs)
 
 
-def correlation(ca, cb, mx):
-    return mx.dot(ca).dot(cb)
+def mv_dot(vec, mx):
+    return mx.dot(vec)
+
+
+def vv_dot(va, vb):
+    return va.dot(vb)

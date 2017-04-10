@@ -51,7 +51,7 @@ def mass_matrix(patch, glob_index, parallel=True):
 
     constant = (quadrature, patch, glob_index)
     if parallel:
-        ret = parmap(element_mass_matrix, list((s,) for s in product(*spans)), constant)
+        ret = parmap(element_mass_matrix, list(product(*spans)), constant, unwrap=False)
     else:
         ret = [element_mass_matrix(span, *constant) for span in product(*spans)]
 
