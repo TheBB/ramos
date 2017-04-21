@@ -128,7 +128,7 @@ class IFEMFileSource(DataSource):
 
             zs.append(np.reshape(patch(*params), (len(patch), field.ncomps)))
 
-        return (np.hstack(xs), np.hstack(ys), np.vstack(zs))
+        return (np.hstack(xs), np.hstack(ys)), np.vstack(zs)
 
     def sink(self, *args, **kwargs):
         return IFEMFileSink(self, *args, **kwargs)

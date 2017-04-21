@@ -51,7 +51,11 @@ class VTKFilesSource(DataSource):
         points = vtk_to_numpy(dataset.GetPoints().GetData())
         x, y = (points[...,i] for i in self.variates)
         coeffs = vtk_to_numpy(dataset.GetPointData().GetAbstractArray(field.name))
-        return x, y, coeffs
+
+        cell_indices = get_cell_indices(dataset)
+        if cell_indices.shape[1] > 3:
+            return (x, y), coeffs
+        return (x, y, cell_indices), coeffs
 
     def sink(self, *args, **kwargs):
         return VTKFilesSink(self, *args, **kwargs)

@@ -8,16 +8,19 @@ from vtk.util.numpy_support import vtk_to_numpy
 from ramos.utils.quadrature import triangular
 
 
-def decompose(dataset, variates):
-    # cell_indices: each row contains the point indices for that cell,
-    # possibly filled with -1 on the end for variable cell sizes
+def get_cells(dataset):
     if isinstance(dataset, vtk.vtkUnstructuredGrid):
-        cells = dataset.GetCells()
+        return dataset.GetCells()
     elif isinstance(dataset, vtk.vtkPolyData):
-        cells = dataset.GetPolys()
+        return dataset.GetPolys()
     else:
         raise TypeError('Unknown dataset type')
 
+
+def get_cell_indices(dataset):
+    # cell_indices: each row contains the point indices for that cell,
+    # possibly filled with -1 on the end for variable cell sizes
+    cells = get_cells(dataset)
     ncells = cells.GetNumberOfCells()
     cellsize = cells.GetMaxCellSize()
     cell_indices = np.empty((ncells, cellsize), dtype=np.int)
@@ -29,7 +32,12 @@ def decompose(dataset, variates):
         j += 1
         cell_indices[i,:l] = cell_raw[j:j+l]
         j += l
+    return cell_indices
 
+
+def decompose(dataset, variates):
+    cell_indices = get_cell_indices(dataset)
+    ncells, cellsize = cell_indices.shape
     logging.debug('Mesh with %d cells, max size %d', ncells, cellsize)
 
     # cell_points: each row contains a npts × 3 matrix with actual points,

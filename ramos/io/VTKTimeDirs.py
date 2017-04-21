@@ -7,7 +7,7 @@ from vtk.util.numpy_support import vtk_to_numpy, numpy_to_vtk
 
 from ramos.io.Base import DataSource, DataSink
 from ramos.utils.vectors import decompose
-from ramos.utils.vtk import mass_matrix, write_to_file
+from ramos.utils.vtk import mass_matrix, write_to_file, get_cell_indices
 
 
 class VTKTimeDirsSource(DataSource):
@@ -60,7 +60,11 @@ class VTKTimeDirsSource(DataSource):
         points = vtk_to_numpy(dataset.GetPoints().GetData())
         x, y = (points[...,i] for i in self.variates)
         coeffs = vtk_to_numpy(dataset.GetPointData().GetAbstractArray(field.name))
-        return x, y, coeffs
+
+        cell_indices = get_cell_indices(dataset)
+        if cell_indices.shape[1] > 3:
+            return (x, y), coeffs
+        return (x, y, cell_indices), coeffs
 
     def sink(self, *args, **kwargs):
         return VTKTimeDirsSink(self, *args, **kwargs)
