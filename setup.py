@@ -3,16 +3,19 @@
 from distutils.core import setup
 
 setup(
-    name='GMesh',
-    version='0.0.1',
-    description='Various meshing tools',
+    name='Ramos',
+    version='0.1.0',
+    description='Tools for reduced bases',
     author='Eivind Fonn',
     author_email='eivind.fonn@sintef.no',
     license='GPL3',
     url='https://github.com/TheBB/gmesh',
-    py_modules=['gmesh', 'gmesh.utm'],
+    py_modules=['gmesh', 'gmesh.utm', 'ramos'],
     install_requires=['click', 'numpy'],
     entry_points={
-        'console_scripts': ['gmesh=gmesh.__main__:main'],
+        'console_scripts': [
+            'gmesh=gmesh.__main__:main',
+            'ramos=ramos.__main__:main',
+        ],
     },
 )
