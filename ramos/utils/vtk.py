@@ -88,6 +88,33 @@ def element_mass_matrix(indices, points, pardim):
             lambda x, y: x,
         ]
 
+    elif npts == 8 and pardim == 3:
+        qpts, qwts = np.polynomial.legendre.leggauss(3)
+        qpts= (qpts + 1) / 2
+        qwts /= 2
+        def quadrature():
+            for quad in product(zip(qpts, qwts), repeat=pardim):
+                pt = tuple(q[0] for q in quad)
+                wt = np.prod([q[1] for q in quad])
+                yield pt, wt
+        quadrature = quadrature()
+        def jac(a, b, c):
+            return np.linalg.det(np.array([
+                [(1-b)*c, b*c, b*(1-c), (1-b)*(1-c), -(1-b)*c, -b*c, -b*(1-c), -(1-b)*(1-c)],
+                [-a*c, a*c, a*(1-c), -a*(1-c), -(1-a)*c, (1-a)*c, (1-a)*(1-c), -(1-a)*(1-c)],
+                [a*(1-b), a*b, -a*b, -a*(1-b), (1-a)*(1-b), (1-a)*b, -(1-a)*b, -(1-a)*(1-b)],
+            ]).dot(points))
+        basis = [
+            lambda x, y, z: x*(1-y)*z,
+            lambda x, y, z: x*y*z,
+            lambda x, y, z: x*y*(1-z),
+            lambda x, y, z: x*(1-y)*(1-z),
+            lambda x, y, z: (1-x)*(1-y)*z,
+            lambda x, y, z: (1-x)*y*z,
+            lambda x, y, z: (1-x)*y*(1-z),
+            lambda x, y, z: (1-x)*(1-y)*(1-z),
+        ]
+
     else:
         return [], [], []
 
