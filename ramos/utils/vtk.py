@@ -1,10 +1,10 @@
 from itertools import product, repeat, chain
 import logging
-from multiprocessing import Pool
 import numpy as np
 import vtk
 from vtk.util.numpy_support import vtk_to_numpy
 
+from ramos.utils.parallel import parmap
 from ramos.utils.quadrature import triangular
 
 
@@ -137,10 +137,9 @@ def mass_matrix(dataset, variates, parallel=True):
     indices, points = decompose(dataset, variates)
 
     # Each worker returns a tuple of: flat matrix, row indices, column indices
-    args = zip(indices, points, repeat(len(variates)))
+    args = list(zip(indices, points, repeat(len(variates))))
     if parallel:
-        pool = Pool()
-        ret = pool.starmap(element_mass_matrix, args)
+        ret = parmap(element_mass_matrix, args)
     else:
         ret = [element_mass_matrix(*arg) for arg in args]
 
