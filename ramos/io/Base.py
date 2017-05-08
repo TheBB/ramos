@@ -56,7 +56,10 @@ class DataSource:
             if name not in self._mass:
                 self._mass[name] = self.field_mass_matrix(field)
             d, r, c = self._mass[name]
-            builder.add(*self._mass[name], 1 if single else field.ncomps, scale)
+            args = list(self._mass[name])
+            args.append(1 if single else field.ncomps)
+            args.append(scale)
+            builder.add(*args)
         return builder.build()
 
     def coefficients(self, fields, level=0, flatten=True):

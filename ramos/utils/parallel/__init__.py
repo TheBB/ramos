@@ -13,7 +13,10 @@ def split(lst, n):
 
 
 def delegate(pid, q, target, chunk, args, reduction):
-    result = [target(*c, *args) for c in chunk]
+    result = []
+    for c in chunk:
+        cur_args = list(c) + list(args)
+        result.append(target(*cur_args))
 
     if reduction:
         q.put((pid, reduction(result)))
