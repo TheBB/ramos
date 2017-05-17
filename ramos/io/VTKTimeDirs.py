@@ -39,9 +39,19 @@ class VTKTimeDirsSource(DataSource):
                 size = pointdata.GetAbstractArray(i).GetNumberOfTuples()
                 self.add_field(name, ncomps, size, file_index=fi)
 
+    def datasets(self):
+        return (
+            ((i,j), self.dataset(i,j))
+            for i in range(len(self.paths))
+            for j in range(len(self.files))
+        )
+
+    def filename(self, path_index, file_index):
+        return join(self.paths[path_index], self.files[file_index])
+
     def dataset(self, path_index, file_index):
         reader = vtk.vtkDataSetReader()
-        reader.SetFileName(join(self.paths[path_index], self.files[file_index]))
+        reader.SetFileName(self.filename(path_index, file_index))
         reader.Update()
         return reader.GetOutput()
 
@@ -95,6 +105,9 @@ class VTKTimeDirsSink(DataSink):
             raise IOError
         self.paths.append(path)
 
+    def filename(self, path_index, file_index):
+        return join(self.paths[path_index], self.parent.files[file_index])
+
     def write_fields(self, level, coeffs, fields):
         fields = [self.parent.field(f) for f in fields]
         data = list(zip(fields, decompose(fields, coeffs)))
@@ -111,4 +124,4 @@ class VTKTimeDirsSink(DataSink):
                 array.SetName(field.name)
                 pointdata.AddArray(array)
 
-            write_to_file(dataset, join(self.paths[level], self.parent.files[file_index]))
+            write_to_file(dataset, self.filename(level, file_index))

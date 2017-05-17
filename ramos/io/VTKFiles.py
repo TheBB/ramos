@@ -30,6 +30,9 @@ class VTKFilesSource(DataSource):
             size = pointdata.GetAbstractArray(i).GetNumberOfTuples()
             self.add_field(name, ncomps, size)
 
+    def datasets():
+        return ((i, self.dataset(i)) for i in range(len(self.files)))
+
     def dataset(self, index):
         reader = vtkDataSetReader()
         reader.SetFileName(self.files[index])

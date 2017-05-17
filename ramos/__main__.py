@@ -2,9 +2,12 @@ import click
 from importlib import import_module
 import logging
 import numpy as np
+from tqdm import tqdm
+from vtk import vtkProbeFilter
 
 from ramos import io
 from ramos.reduction import Reduction
+from ramos.utils.vtk import write_to_file
 
 
 @click.group()
@@ -37,6 +40,26 @@ def reduce(fields, error, out, min_modes, sources):
     r = Reduction(sources, fields, sink, out, min_modes, error)
     r.reduce()
 
+
+@main.command()
+@click.option('--target', '-t', type=io.DataSourceType())
+@click.option('--out', '-o', type=str, default='out')
+@click.argument('source', type=io.DataSourceType())
+def interpolate(source, target, out):
+    assert isinstance(source, (io.VTKFilesSource, io.VTKTimeDirsSource))
+    assert isinstance(target, (io.VTKFilesSource, io.VTKTimeDirsSource))
+    sink = source.sink(out)
+    for i in source.levels():
+        sink.add_level(i)
+
+    probefilter = vtkProbeFilter()
+    _, dataset = next(target.datasets())
+    probefilter.SetInputData(dataset)
+    for ind, ds in tqdm(source.datasets()):
+        probefilter.SetSourceData(ds)
+        probefilter.Update()
+        output = probefilter.GetUnstructuredGridOutput()
+        write_to_file(output, sink.filename(*ind))
 
 @main.command()
 @click.option('--field', '-f', type=str)
