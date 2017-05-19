@@ -59,6 +59,10 @@ def interpolate(source, target, out):
         probefilter.SetSourceData(ds)
         probefilter.Update()
         output = probefilter.GetUnstructuredGridOutput()
+        if not output:
+            output = probefilter.GetPolyDataOutput()
+        if not output:
+            raise TypeError('Unsupported dataset type')
         write_to_file(output, sink.filename(*ind))
 
 @main.command()

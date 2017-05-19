@@ -155,6 +155,8 @@ def write_to_file(dataset, filename):
         writer = vtk.vtkPolyDataWriter()
     elif isinstance(dataset, vtk.vtkUnstructuredGrid):
         writer = vtk.vtkUnstructuredGridWriter()
+    else:
+        raise TypeError('Unsupported dataset type: {}'.format(type(dataset)))
     writer.SetFileName(filename)
     writer.SetInputData(dataset)
     writer.Write()
