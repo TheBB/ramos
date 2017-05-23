@@ -51,6 +51,8 @@ def interpolate(source, target, out):
     """Interpolate a data source on a common mesh."""
     if not target:
         target = source
+
+    # Interpolation only works on VTK type sources currently
     assert isinstance(source, (io.VTKFilesSource, io.VTKTimeDirsSource))
     assert isinstance(target, (io.VTKFilesSource, io.VTKTimeDirsSource))
     sink = source.sink(out)
@@ -60,6 +62,9 @@ def interpolate(source, target, out):
     probefilter = vtkProbeFilter()
     _, dataset = next(target.datasets())
     probefilter.SetInputData(dataset)
+    # Depending on the source type, a dataset may or may not correspond to a
+    # time level. However, the data sets make up all the information in a
+    # source, so dealing with all of them will create a complete copy.
     for ind, ds in tqdm(source.datasets()):
         probefilter.SetSourceData(ds)
         probefilter.Update()
@@ -85,16 +90,26 @@ def interpolate(source, target, out):
 @click.argument('source', type=io.DataSourceType())
 def plot(field, level, out, scale, smooth, show, transpose, flip_x, flip_y, source, cmap):
     """Plot data from a data source."""
+
+    # So far, only 2D plots
     assert source.pardim == 2
+
+    # We suport some minor post-processing of fields, in the form of
+    # <fieldname>:<postproc>
     if ':' in field:
         field, post = field.split(':')
     else:
         post = None
+
+    # tess is either (x, y) or (x, y, cell_indices)
     tess, coeffs = source.tesselate(field, level)
+
+    # Norm or norm squared
     if post in {'ss', 'ssq'}:
         coeffs = np.sum(coeffs ** 2, axis=-1)
         if post == 'ssq':
             coeffs = np.sqrt(coeffs)
+    # Pick a single component
     elif post and post in 'xyz':
         coeffs = coeffs[..., 'xyz'.index(post)]
     elif post:
@@ -102,16 +117,20 @@ def plot(field, level, out, scale, smooth, show, transpose, flip_x, flip_y, sour
     else:
         coeffs = coeffs[..., 0]
 
+    # Import here to ensure that matplotlib is an optional dependency
     mpl = import_module('matplotlib')
     plt = import_module('matplotlib.pyplot')
     Triangulation = import_module('matplotlib.tri').Triangulation
 
+    # Make some changes to x and y depending on input
     x, y = tess[0], tess[1]
     if transpose: x, y = y, x
     if flip_x: x = -x
     if flip_y: y = -y
     tess = tuple([x, y] + list(tess[2:]))
 
+    # Form triangulation and make the plot
+    # If tess is only (x, y), the Delaunay triangulation is used
     tri = Triangulation(*tess)
     plt.tripcolor(tri, coeffs, shading=('gouraud' if smooth else 'flat'), cmap=plt.get_cmap(cmap))
 
