@@ -26,26 +26,31 @@ def main(verbosity):
 @main.command()
 @click.argument('data', type=io.DataSourceType())
 def summary(data):
+    """Print a brief summary of a data source."""
     print(data)
 
 
 @main.command()
-@click.option('--fields', '-f', type=str, multiple=True)
-@click.option('--error', '-e', type=float, default=0.05)
-@click.option('--out', '-o', type=str, default='out')
-@click.option('--min-modes', type=int, default=10)
+@click.option('--field', '-f', 'fields', type=str, multiple=True, help='Fields to read')
+@click.option('--error', '-e', type=float, default=0.05, help='Relative error threshold to achieve')
+@click.option('--out', '-o', type=str, default='out', help='Name of output')
+@click.option('--min-modes', type=int, default=10, help='Minimum number of modes to write')
 @click.argument('sources', type=io.DataSourceType(), nargs=-1)
 def reduce(fields, error, out, min_modes, sources):
+    """Calculate a reduced basis."""
     sink = sources[0].sink(out)
     r = Reduction(sources, fields, sink, out, min_modes, error)
     r.reduce()
 
 
 @main.command()
-@click.option('--target', '-t', type=io.DataSourceType())
-@click.option('--out', '-o', type=str, default='out')
+@click.option('--target', '-t', type=io.DataSourceType(), help='Source from which the mesh will be taken')
+@click.option('--out', '-o', type=str, default='out', help='Name of output')
 @click.argument('source', type=io.DataSourceType())
 def interpolate(source, target, out):
+    """Interpolate a data source on a common mesh."""
+    if not target:
+        target = source
     assert isinstance(source, (io.VTKFilesSource, io.VTKTimeDirsSource))
     assert isinstance(target, (io.VTKFilesSource, io.VTKTimeDirsSource))
     sink = source.sink(out)
@@ -67,18 +72,19 @@ def interpolate(source, target, out):
 
 
 @main.command()
-@click.option('--field', '-f', type=str)
-@click.option('--level', '-l', type=int, default=0)
-@click.option('--out', '-o', type=str)
-@click.option('--scale/--no-scale', default=False)
-@click.option('--smooth/--no-smooth', default=False)
-@click.option('--show/--no-show', default=False)
-@click.option('--transpose/--no-transpose', default=False)
-@click.option('--flip-x/--no-flip-x', default=False)
-@click.option('--flip-y/--no-flip-y', default=False)
-@click.option('--cmap', default='viridis')
+@click.option('--field', '-f', type=str, help='Field to plot')
+@click.option('--level', '-l', type=int, default=0, help='Time level to plot at')
+@click.option('--out', '-o', type=str, help='Name of output')
+@click.option('--scale/--no-scale', default=False, help='Add a color scale to the output')
+@click.option('--smooth/--no-smooth', default=False, help='Smooth shading of mesh')
+@click.option('--show/--no-show', default=False, help='Show plot in a window')
+@click.option('--transpose/--no-transpose', default=False, help='Transpose x and y')
+@click.option('--flip-x/--no-flip-x', default=False, help='Flip x')
+@click.option('--flip-y/--no-flip-y', default=False, help='Flip y')
+@click.option('--cmap', default='viridis', help='Colormap to use')
 @click.argument('source', type=io.DataSourceType())
 def plot(field, level, out, scale, smooth, show, transpose, flip_x, flip_y, source, cmap):
+    """Plot data from a data source."""
     assert source.pardim == 2
     if ':' in field:
         field, post = field.split(':')
