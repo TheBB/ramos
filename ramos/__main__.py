@@ -62,6 +62,9 @@ def project(source, target, out):
         for field in fields
         for comp in range(target.field(field).ncomps)
     ]
+    print(mass.shape)
+    for mode in modes:
+        print(mode.shape)
     modes = [
         mode / np.sqrt(mass.dot(mode).dot(mode))
         for mode in modes
