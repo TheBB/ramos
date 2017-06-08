@@ -8,6 +8,8 @@ from vtk import vtkProbeFilter
 from ramos import io
 from ramos.reduction import Reduction
 from ramos.utils.vtk import write_to_file
+from ramos.utils.parallel import parmap
+from ramos.utils.parallel.workers import mv_dot, vv_dot
 
 
 @click.group()
@@ -41,6 +43,38 @@ def reduce(fields, error, out, min_modes, sources):
     sink = sources[0].sink(out)
     r = Reduction(sources, fields, sink, out, min_modes, error)
     r.reduce()
+
+
+@main.command()
+@click.option('--target', '-t', type=io.DataSourceType(), help='Basis to project onto')
+@click.option('--out', '-o', type=str, default='out', help='Name of output')
+@click.argument('source', type=io.DataSourceType())
+def project(source, target, out):
+    fields = [f.name for f in target.fields()]
+    mass = target.mass_matrix(fields)
+    sink = source.sink(out)
+
+    # In addition to the modes, we need the constant modes for each field/component
+    modes = [
+        target.unity_coefficients(fields, field, comp)
+        for field in fields
+        for comp in range(target.field(field).ncomps)
+    ]
+    modes = [
+        mode / np.sqrt(mass.dot(mode).dot(mode))
+        for mode in modes
+    ]
+    modes.extend(target.coefficients(fields, li) for li in target.levels())
+
+    # Project each time level individually
+    for li in tqdm(source.levels(), desc='Time steps', total=source.ntimes):
+        vector = source.coefficients(fields, li)
+        coeffs = [mass.dot(mode).dot(vector) for mode in modes]
+        recons = np.zeros(vector.shape)
+        for coeff, mode in zip(coeffs, modes):
+            recons += coeff * mode
+        sink.add_level(li)
+        sink.write_fields(li, recons, fields)
 
 
 @main.command()

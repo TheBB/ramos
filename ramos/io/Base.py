@@ -92,6 +92,16 @@ class DataSource:
 
         return builder.build()
 
+    def unity_coefficients(self, fields, field, comp=0):
+        coeffs = []
+        for ff in fields:
+            ff = self.field(ff)
+            array = np.zeros((ff.size * ff.ncomps,))
+            if ff.name == field:
+                array[comp::ff.ncomps] = 1.0
+            coeffs.append(array)
+        return np.hstack(coeffs)
+
     def coefficients(self, fields, level=0, flatten=True):
         """Return the coefficient vector for one or more fields at a given time level.
 
