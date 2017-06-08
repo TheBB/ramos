@@ -93,6 +93,11 @@ class DataSource:
         return builder.build()
 
     def unity_coefficients(self, fields, field, comp=0):
+        """Return the unity coefficient vector for a field/component.
+
+        The unity vector has ones for all degrees of freedom corresponding to
+        that field/component, and zeros elsewhere.
+        """
         coeffs = []
         for ff in fields:
             ff = self.field(ff)

@@ -50,11 +50,13 @@ def reduce(fields, error, out, min_modes, sources):
 @click.option('--out', '-o', type=str, default='out', help='Name of output')
 @click.argument('source', type=io.DataSourceType())
 def project(source, target, out):
+    """Project a data source onto a basis."""
     fields = [f.name for f in target.fields()]
     mass = target.mass_matrix(fields)
     sink = source.sink(out)
 
-    # In addition to the modes, we need the constant modes for each field/component
+    # In addition to the target modes, we need the constant modes for each
+    # field/component
     modes = [
         target.unity_coefficients(fields, field, comp)
         for field in fields
