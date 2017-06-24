@@ -171,6 +171,7 @@ def plot(field, level, out, scale, smooth, show, transpose, flip_x, flip_y, sour
     plt.tripcolor(tri, coeffs, shading=('gouraud' if smooth else 'flat'), cmap=plt.get_cmap(cmap))
 
     plt.axes().set_aspect(1)
+    plt.axes().axis('off')
     plt.tick_params(axis='x', which='both', bottom='off', top='off', labelbottom='off')
     plt.tick_params(axis='y', which='both', left='off', right='off', labelleft='off')
 
