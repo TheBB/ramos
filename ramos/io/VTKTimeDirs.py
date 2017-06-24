@@ -6,6 +6,7 @@ import vtk
 from vtk.util.numpy_support import vtk_to_numpy, numpy_to_vtk
 
 from ramos.io.Base import DataSource, DataSink
+from ramos.utils.mesh import mesh_filter
 from ramos.utils.vectors import decompose
 from ramos.utils.vtk import mass_matrix, write_to_file, get_cell_indices
 
@@ -98,22 +99,27 @@ class VTKTimeDirsSource(DataSource):
         array = pointdata.GetAbstractArray(field.name)
         return vtk_to_numpy(array)
 
-    def tesselate(self, field, level=0):
+    def tesselate(self, field, variates=None, level=0, condition=None):
         """Return a tesselation (for plotting) of a single field at a given time level.
 
-        Returns either:
-        - (x, y, cell_indices), coeffs  (if all cells are triangles)
-        - (x, y), coeffs                (if there are higher order cells)
+        Returns a tuple (x, y, cell_indices), coeffs
         """
         field = self.field(field)
         dataset = self.dataset(level, field.file_index)
         points = vtk_to_numpy(dataset.GetPoints().GetData())
-        x, y = (points[...,i] for i in self.variates)
+
+        if not variates:
+            variates = self.variates[:2]
+        x, y = (points[...,i] for i in variates)
         coeffs = vtk_to_numpy(dataset.GetPointData().GetAbstractArray(field.name))
 
         cell_indices = get_cell_indices(dataset)
-        if cell_indices.shape[1] > 3:
-            return (x, y), coeffs
+
+        if condition:
+            condition = np.where(points[...,condition] > 0)[0]
+            coeffs = coeffs[condition,:]
+        x, y, cell_indices = mesh_filter(x, y, cell_indices, condition)
+
         return (x, y, cell_indices), coeffs
 
     def sink(self, *args, **kwargs):

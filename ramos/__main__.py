@@ -122,13 +122,16 @@ def interpolate(source, target, out):
 @click.option('--transpose/--no-transpose', default=False, help='Transpose x and y')
 @click.option('--flip-x/--no-flip-x', default=False, help='Flip x')
 @click.option('--flip-y/--no-flip-y', default=False, help='Flip y')
+@click.option('--variates', default=(0,1), nargs=2, type=int, help='Directions to plot')
+@click.option('--condition', default=None, type=int, help='Pseudo-2D direction for filtering')
 @click.option('--cmap', default='viridis', help='Colormap to use')
 @click.argument('source', type=io.DataSourceType())
-def plot(field, level, out, scale, smooth, show, transpose, flip_x, flip_y, source, cmap):
+def plot(field, level, out, scale, smooth, show,
+         transpose, flip_x, flip_y, variates, condition, cmap, source):
     """Plot data from a data source."""
 
-    # So far, only 2D plots
-    assert source.pardim == 2
+    # # So far, only 2D plots
+    # assert source.pardim == 2
 
     # We suport some minor post-processing of fields, in the form of
     # <fieldname>:<postproc>
@@ -138,7 +141,7 @@ def plot(field, level, out, scale, smooth, show, transpose, flip_x, flip_y, sour
         post = None
 
     # tess is either (x, y) or (x, y, cell_indices)
-    tess, coeffs = source.tesselate(field, level)
+    tess, coeffs = source.tesselate(field, variates, level, condition)
 
     # Norm or norm squared
     if post in {'ss', 'ssq'}:
