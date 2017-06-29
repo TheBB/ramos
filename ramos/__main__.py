@@ -124,14 +124,14 @@ def interpolate(source, target, out):
 @click.option('--flip-y/--no-flip-y', default=False, help='Flip y')
 @click.option('--variates', default=(0,1), nargs=2, type=int, help='Directions to plot')
 @click.option('--condition', default=None, type=int, help='Pseudo-2D direction for filtering')
+@click.option('--xlim', default=None, nargs=2, type=int, help='Bounding box')
+@click.option('--ylim', default=None, nargs=2, type=int, help='Bounding box')
 @click.option('--cmap', default='viridis', help='Colormap to use')
 @click.argument('source', type=io.DataSourceType())
 def plot(field, level, out, scale, smooth, show,
-         transpose, flip_x, flip_y, variates, condition, cmap, source):
+         transpose, flip_x, flip_y, variates, condition,
+         xlim, ylim, cmap, source):
     """Plot data from a data source."""
-
-    # # So far, only 2D plots
-    # assert source.pardim == 2
 
     # We suport some minor post-processing of fields, in the form of
     # <fieldname>:<postproc>
@@ -178,6 +178,10 @@ def plot(field, level, out, scale, smooth, show,
     plt.tick_params(axis='x', which='both', bottom='off', top='off', labelbottom='off')
     plt.tick_params(axis='y', which='both', left='off', right='off', labelleft='off')
 
+    if xlim:
+        plt.xlim(xlim)
+    if ylim:
+        plt.ylim(ylim)
     if scale:
         plt.colorbar()
     if out:
