@@ -1,6 +1,7 @@
 from itertools import product, repeat, chain
 import logging
 import numpy as np
+import quadpy
 import vtk
 from vtk.util.numpy_support import vtk_to_numpy
 
@@ -90,7 +91,7 @@ def element_mass_matrix(indices, points, pardim):
 
     elif npts == 8 and pardim == 3:
         qpts, qwts = np.polynomial.legendre.leggauss(3)
-        qpts= (qpts + 1) / 2
+        qpts = (qpts + 1) / 2
         qwts /= 2
         def quadrature():
             for quad in product(zip(qpts, qwts), repeat=pardim):
@@ -113,6 +114,22 @@ def element_mass_matrix(indices, points, pardim):
             lambda x, y, z: (1-x)*y*z,
             lambda x, y, z: (1-x)*y*(1-z),
             lambda x, y, z: (1-x)*(1-y)*(1-z),
+        ]
+
+    elif npts == 4 and pardim == 3:
+        quad = quadpy.tetrahedron.HammerMarloweStroud(2)
+        quadrature = zip(quad.points, quad.weights)
+        cjac = np.linalg.det(np.vstack([
+            points[1,:] - points[0,:],
+            points[2,:] - points[0,:],
+            points[3,:] - points[0,:]
+        ]))
+        jac = lambda x, y, z: cjac
+        basis = [
+            lambda x, y, z: 1-x-y-z,
+            lambda x, y, z: x,
+            lambda x, y, z: y,
+            lambda x, y, z: z,
         ]
 
     else:
