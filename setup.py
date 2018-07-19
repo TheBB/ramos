@@ -9,7 +9,7 @@ setup(
     author='Eivind Fonn',
     author_email='eivind.fonn@sintef.no',
     license='GPL3',
-    url='https://github.com/TheBB/gmesh',
+    url='https://github.com/TheBB/ramos',
     packages=['ramos'],
     install_requires=['click', 'numpy', 'scipy', 'quadpy', 'tqdm', 'vtk'],
     extras_require={
