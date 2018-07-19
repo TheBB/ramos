@@ -99,4 +99,10 @@ Specify the field name you want to reduce over, and optionally the error thresho
 interested in. In some cases it may be useful to specify a minimum number of modes to output as
 well.
 
-The modes will be written to the output data target as separate timesteps.
+The modes will be written to the output data target as separate timesteps. A csv file will also be
+produced with the system spectrum, in four columns:
+
+- index
+- eigenvalue
+- normalized tail sum of eigenvalues
+- square root of normalized tail sum of eigenvalues (i.e. expected error)
