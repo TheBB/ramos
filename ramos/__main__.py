@@ -55,18 +55,7 @@ def project(source, target, out):
     mass = target.mass_matrix(fields)
     sink = source.sink(out)
 
-    # In addition to the target modes, we need the constant modes for each
-    # field/component
-    modes = [
-        target.unity_coefficients(fields, field, comp)
-        for field in fields
-        for comp in range(target.field(field).ncomps)
-    ]
-    modes = [
-        mode / np.sqrt(mass.dot(mode).dot(mode))
-        for mode in modes
-    ]
-    modes.extend(target.coefficients(fields, li) for li in target.levels())
+    modes = [target.coefficients(fields, li) for li in target.levels()]
 
     # Project each time level individually
     for li in tqdm(source.levels(), desc='Time steps', total=source.ntimes):

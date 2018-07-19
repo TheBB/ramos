@@ -55,19 +55,9 @@ class Reduction:
         # them, so that they have equal energy contribution.
         self.compute_scales()
 
-        # Compute the mass matrices associated with each field and store them
-        # in a dict. The DataSource.mass_matrix function is parallelized, so do
-        # this in serial.
-        logging.info('Computing single-component mass matrices')
-        mass = {}
-        for field in self.fields:
-            mass[field] = self.master.mass_matrix(field, single=True)
-
-        # Compute the coefficients for each snapshot, centered around the
-        # component-wise mean.
+        # Compute the coefficients for each snapshot.
         logging.info('Normalizing ensemble')
-        args = self.source_levels()
-        ensemble = parmap(normalized_coeffs, args, (self.fields, mass))
+        ensemble = [source.coefficients(self.fields, li) for source, li in self.source_levels()]
 
         # Compute the grand unified mass matrix that applies to the grand
         # unified coefficient vectors (with multiple fields). This should be
