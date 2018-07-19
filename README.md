@@ -4,7 +4,7 @@ The easiest way to install is to use `pip`,
 
     $ pip install .
     
-Note that gmesh requires Python 3, so you need to use a pip command that is tied
+Note that Ramos requires Python 3, so you need to use a pip command that is tied
 to Python 3. On some systems, this may be called `pip3`.
 
     $ pip3 install .
@@ -17,7 +17,7 @@ locally, use
 
     $ pip3 install −−user .
     
-The `gmesh` script will then be installed to a directory such as `~/.local/bin`.
+The `ramos` script will then be installed to a directory such as `~/.local/bin`.
 To run gmesh, make sure that this is in your `PATH`, e.g. put
 
     export PATH=$HOME/.local/bin:$PATH
@@ -26,49 +26,17 @@ in your shell startup file.
 
 ### Dependencies
 
-`pip` automatically installs the hard dependencies (such as numpy), however most
-of the gmesh commands require optional dependencies to be installed. If you need
+`pip` automatically installs the hard dependencies (such as numpy), however some
+of the `ramos` commands require optional dependencies to be installed. If you need
 any of them, please install them manually, and please do ensure that you get the
 Python 3 versions.
 
 #### File types
 
-- The Python NetCDF4 bindings are required for reading NetCDF4 files. E.g. in
-  Ubuntu, try the `python3-netcdf4` package.
 - The Python HDF5 bindings are required for reading HDF5 files. E.g. in Ubuntu,
   try the `python3-h5py` package.
 - The Python `vtk` bindings are required for reading and writing VTK files.
-  Since Python 3 support in VTK is rather new, this can be tricky. If you are on
-  a 16.04 Ubuntu system you can
-  try [this](https://launchpad.net/~elvstone/+archive/ubuntu/vtk7) PPA:
-
-      add-apt-repository ppa:elvstone/vtk7
-      apt-get update
-      apt-get install vtk7
-
-  This package installs to `/opt`, which means you need to tweak some
-  environment variables.
-
-      export PYTHONPATH=/opt/VTK-7.0.0/lib/python3.5/site-packages:$PYTHONPATH
-      export LD_LIBRARY_PATH=/opt/VTK-7.0.0/lib:$LD_LIBRARY_PATH
-
-  Otherwise you may have to compile it yourself. The instructions
-  [here](http://www.vtk.org/Wiki/VTK/Configure_and_Build#Configure_VTK_with_CMake) are
-  quite complete and easy to follow. When configuring with `cmake` or `ccmake`,
-  make sure that you enable the Python bindings and that the Python version is
-  Python 3. After building and installing VTK, it is possible that it installs
-  to `/usr/local`, in which case many of the libraries can’t be found. Add the
-  path of the python modules to `PYTHONPATH` and the path of the libraries to
-  `LD_LIBRARY_PATH` before starting, for example
-  
-      export PYTHONPATH=/usr/local/lib/python3.5/site-packages:$PYTHONPATH
-      export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
     
-#### GUI
-
-Showing the map and the GUI requires matplotlib (`python3-matplotlib`) and PyQt5
-(`python3-pyqt5`).
-
 ## Usage
 
 ### Structure
