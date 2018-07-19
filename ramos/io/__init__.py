@@ -4,9 +4,15 @@ from os.path import abspath, dirname, exists, isdir, isfile, join, splitext
 from os import listdir
 
 from ramos.io.Base import DataSource
-from ramos.io.IFEMFile import IFEMFileSource
 from ramos.io.VTKFiles import VTKFilesSource
 from ramos.io.VTKTimeDirs import VTKTimeDirsSource
+
+try:
+    import splipy
+    from ramos.io.IFEMFile import IFEMFileSource
+    has_ifem = True
+except ImportError:
+    has_ifem = False
 
 
 __all__ = ['load', 'DataSourceType']
@@ -92,7 +98,7 @@ def _load_file(filename, fields):
         return DataSource(filename)
 
     # IFEM results
-    if ext in {'.hdf5', '.h5'}:
+    if ext in {'.hdf5', '.h5'} and has_ifem:
         dep_file = '{}.xml'.format(basename)
         if not exists(dep_file):
             raise FileNotFoundError()

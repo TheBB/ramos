@@ -4,14 +4,14 @@ from itertools import chain, product, repeat
 from lxml import etree
 import numpy as np
 from os.path import splitext
-import splipy.IO
+import splipy.io
 
 from ramos.io.Base import DataSource, DataSink
 from ramos.utils.splipy import mass_matrix
 from ramos.utils.vectors import decompose
 
 
-class G2Object(splipy.IO.G2):
+class G2Object(splipy.io.G2):
 
     def __init__(self, fstream, mode):
         self.fstream = fstream

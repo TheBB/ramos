@@ -11,7 +11,10 @@ setup(
     license='GPL3',
     url='https://github.com/TheBB/gmesh',
     packages=['gmesh', 'gmesh.utm', 'ramos'],
-    install_requires=['click', 'numpy', 'quadpy'],
+    install_requires=['click', 'numpy', 'scipy', 'quadpy', 'tqdm', 'vtk'],
+    extras_require={
+        'IFEM': ['splipy', 'lxml', 'h5py'],
+    }
     entry_points={
         'console_scripts': [
             'gmesh=gmesh.__main__:main',
