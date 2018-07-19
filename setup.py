@@ -14,7 +14,7 @@ setup(
     install_requires=['click', 'numpy', 'scipy', 'quadpy', 'tqdm', 'vtk'],
     extras_require={
         'IFEM': ['splipy', 'lxml', 'h5py'],
-    }
+    },
     entry_points={
         'console_scripts': [
             'ramos=ramos.__main__:main',
