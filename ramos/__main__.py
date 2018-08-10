@@ -162,10 +162,10 @@ def plot(field, level, out, scale, smooth, show,
     tri = Triangulation(*tess)
     plt.tripcolor(tri, coeffs, shading=('gouraud' if smooth else 'flat'), cmap=plt.get_cmap(cmap))
 
-    plt.axes().set_aspect(1)
-    plt.axes().axis('off')
-    plt.tick_params(axis='x', which='both', bottom='off', top='off', labelbottom='off')
-    plt.tick_params(axis='y', which='both', left='off', right='off', labelleft='off')
+    plt.gca().set_aspect(1)
+    plt.gca().axis('off')
+    plt.tick_params(axis='x', which='both', bottom=False, top=False, labelbottom=False)
+    plt.tick_params(axis='y', which='both', left=False, right=False, labelleft=False)
 
     if xlim:
         plt.xlim(xlim)
