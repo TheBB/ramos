@@ -10,7 +10,7 @@ setup(
     author_email='eivind.fonn@sintef.no',
     license='GPL3',
     url='https://github.com/TheBB/ramos',
-    packages=['ramos'],
+    packages=['ramos', 'ramos.io', 'ramos.utils', 'ramos.utils.parallel'],
     install_requires=['click', 'numpy', 'scipy', 'quadpy', 'tqdm', 'vtk'],
     extras_require={
         'IFEM': ['splipy', 'lxml', 'h5py'],
