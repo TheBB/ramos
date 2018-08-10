@@ -107,7 +107,7 @@ def interpolate(source, target, out):
 @click.option('--out', '-o', type=str, help='Name of output')
 @click.option('--scale/--no-scale', default=False, help='Add a color scale to the output')
 @click.option('--smooth/--no-smooth', default=False, help='Smooth shading of mesh')
-@click.option('--show/--no-show', default=False, help='Show plot in a window')
+@click.option('--show/--no-show', default=True, help='Show plot in a window')
 @click.option('--transpose/--no-transpose', default=False, help='Transpose x and y')
 @click.option('--flip-x/--no-flip-x', default=False, help='Flip x')
 @click.option('--flip-y/--no-flip-y', default=False, help='Flip y')
