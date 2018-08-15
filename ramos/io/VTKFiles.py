@@ -86,7 +86,7 @@ class VTKFilesSource(DataSource):
 
         if not variates:
             variates = self.variates[:2]
-        x, y = (points[...,i] for i in self.variates)
+        x, y = (points[...,i] for i in variates)
         coeffs = vtk_to_numpy(dataset.GetPointData().GetAbstractArray(field.name))
 
         cell_indices = get_cell_indices(dataset)
