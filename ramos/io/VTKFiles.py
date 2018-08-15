@@ -1,4 +1,5 @@
 from os import makedirs
+import numpy as np
 from os.path import exists, isdir, join, split
 from vtk import vtkDataSetReader
 from vtk.util.numpy_support import vtk_to_numpy, numpy_to_vtk
