@@ -117,7 +117,9 @@ class VTKTimeDirsSource(DataSource):
 
         if condition:
             condition = np.where(points[...,condition] > 0)[0]
-            coeffs = coeffs[condition,:]
+            coeffs = coeffs[condition,...]
+        if coeffs.ndim == 1:
+            coeffs = coeffs.reshape((-1, 1))
         x, y, cell_indices = mesh_filter(x, y, cell_indices, condition)
 
         return (x, y, cell_indices), coeffs
