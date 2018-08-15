@@ -6,7 +6,7 @@ from vtk.util.numpy_support import vtk_to_numpy, numpy_to_vtk
 from ramos.io.Base import DataSource, DataSink
 from ramos.utils.mesh import mesh_filter
 from ramos.utils.vectors import decompose
-from ramos.utils.vtk import mass_matrix, write_to_file
+from ramos.utils.vtk import mass_matrix, write_to_file, get_cell_indices
 
 
 class VTKFilesSource(DataSource):
