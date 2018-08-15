@@ -4,6 +4,7 @@ from vtk import vtkDataSetReader
 from vtk.util.numpy_support import vtk_to_numpy, numpy_to_vtk
 
 from ramos.io.Base import DataSource, DataSink
+from ramos.utils.mesh import mesh_filter
 from ramos.utils.vectors import decompose
 from ramos.utils.vtk import mass_matrix, write_to_file
 
@@ -72,7 +73,7 @@ class VTKFilesSource(DataSource):
         array = pointdata.GetAbstractArray(field.name)
         return vtk_to_numpy(array)
 
-    def tesselate(self, field, level=0):
+    def tesselate(self, field, variates=None, level=0, condition=None):
         """Return a tesselation (for plotting) of a single field at a given time level.
 
         Returns either:
@@ -82,10 +83,19 @@ class VTKFilesSource(DataSource):
         field = self.field(field)
         dataset = self.dataset(level)
         points = vtk_to_numpy(dataset.GetPoints().GetData())
+
+        if not variates:
+            variates = self.variates[:2]
         x, y = (points[...,i] for i in self.variates)
         coeffs = vtk_to_numpy(dataset.GetPointData().GetAbstractArray(field.name))
 
         cell_indices = get_cell_indices(dataset)
+
+        if condition:
+            condition = np.where(points[...,condition] > 0)[0]
+            coeffs = coeffs[condition,:]
+        x, y, cell_indices = mesh_filter(x, y, cell_indices, condition)
+
         if cell_indices.shape[1] > 3:
             return (x, y), coeffs
         return (x, y, cell_indices), coeffs

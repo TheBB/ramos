@@ -143,7 +143,7 @@ class DataSource:
         raise NotImplementedError
 
     @abstractmethod
-    def tesselate(self, field, level=0):
+    def tesselate(self, field, variates=None, level=0, condition=None):
         """Return a tesselation (for plotting) of a single field at a given time level.
 
         Must be implemented in child classes."""
